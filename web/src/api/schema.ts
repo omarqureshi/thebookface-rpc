@@ -182,6 +182,7 @@ export interface UnsupportedMediaType {
 
 /** camelCase -> wire name, per type. Nothing else is renamed. */
 export const WIRE_FIELDS: Record<string, Record<string, string>> = {
+  UnsupportedMediaType: { contentType: "content_type" },
   FeedPage: { nextCursor: "next_cursor" },
   Post: { reactionCounts: "reaction_counts", commentCount: "comment_count", createdAt: "created_at" },
   Author: { avatarKey: "avatar_key" },
@@ -206,4 +207,33 @@ export const WIRE_NESTED: Record<string, Record<string, string>> = {
   CreatePostInput: { media: "MediaItem" },
   CommentList: { comments: "Comment" },
   Comment: { author: "Author" },
+}
+
+
+/** Input/output type per procedure, so the client can map both directions. */
+export const PROC_TYPES: Record<string, { input: string; output: string }> = {
+  "comments.create": { input: "CreateCommentInput", output: "Comment" },
+  "comments.destroy": { input: "CommentRef", output: "Comment" },
+  "comments.thread": { input: "ThreadInput", output: "CommentList" },
+  "comments.update": { input: "UpdateCommentInput", output: "Comment" },
+  "posts.create": { input: "CreatePostInput", output: "Post" },
+  "posts.destroy": { input: "PostId", output: "Empty" },
+  "posts.feed": { input: "FeedInput", output: "FeedPage" },
+  "posts.get": { input: "PostId", output: "Post" },
+  "posts.update": { input: "UpdatePostInput", output: "Post" },
+  "profiles.get": { input: "Empty", output: "Profile" },
+  "profiles.update": { input: "UpdateProfileInput", output: "Profile" },
+  "reactions.mine": { input: "ThreadInput", output: "MyReactions" },
+  "reactions.toggle": { input: "ToggleReactionInput", output: "ReactionState" },
+  "uploads.presign": { input: "PresignInput", output: "PresignedUpload" },
+}
+
+
+/** Wire error code -> interface name. */
+export const ERROR_TYPES: Record<string, string> = {
+  not_found: "NotFound",
+  validation_failed: "ValidationFailed",
+  forbidden: "Forbidden",
+  unsupported_reaction: "UnsupportedReaction",
+  unsupported_media_type: "UnsupportedMediaType",
 }

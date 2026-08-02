@@ -2,7 +2,7 @@
 // generated: retries, batching, auth and error decoding are fixed once here
 // rather than re-emitted into every consumer. See prospect/DESIGN.md §7.
 
-import { WIRE_FIELDS, WIRE_NESTED, type Procedures } from "./schema"
+import { WIRE_FIELDS, WIRE_NESTED, PROC_TYPES, ERROR_TYPES, type Procedures } from "./schema"
 
 type Id = keyof Procedures
 type In<K extends Id> = Procedures[K]["input"]
@@ -64,7 +64,10 @@ export function createClient(opts: ClientOptions = {}) {
 
   const unwrap = (status: number, body: any) => {
     if (body?.ok) return body.result
-    throw new RpcError(status, body?.error ?? { code: "unknown" })
+    const err = body?.error ?? { code: "unknown" }
+    // Errors are structs on the wire too — map them the same way as results, or
+    // their fields stay snake_case while the generated interface says camelCase.
+    throw new RpcError(status, rename(err, ERROR_TYPES[err.code], "from"))
   }
 
   async function flush() {
@@ -106,8 +109,10 @@ export function createClient(opts: ClientOptions = {}) {
   }
 
   async function call<K extends Id>(id: K, input: In<K>): Promise<Out<K>> {
-    const [type] = [String(id)]
-    const wire = rename(input, inputTypeOf(type), "to")
+    // Both directions are driven by PROC_TYPES, which the emitter generates
+    // from the IR — nothing here knows a type name by convention.
+    const types = PROC_TYPES[String(id)]
+    const wire = rename(input, types?.input, "to")
 
     const raw = await new Promise<any>((resolve, reject) => {
       const p: Pending = { id: String(id), input: wire, resolve, reject }
@@ -118,13 +123,8 @@ export function createClient(opts: ClientOptions = {}) {
         queueMicrotask(flush)
       }
     })
-    return rename(raw, outputTypeOf(type), "from") as Out<K>
+    return rename(raw, types?.output, "from") as Out<K>
   }
-
-  // The IR knows each procedure's input/output type names; until the emitter
-  // ships that table too, resolve by convention from the generated maps.
-  const inputTypeOf = (_id: string) => undefined
-  const outputTypeOf = (id: string) => PROC_OUTPUT[id]
 
   // Proxy so call sites read `api.posts.get({...})` rather than
   // `call("posts.get", {...})` — the tRPC feel, with no generated methods.
@@ -134,24 +134,6 @@ export function createClient(opts: ClientOptions = {}) {
         get: (_t2, proc: string) => (input: any) => call(`${service}.${proc}` as Id, input),
       }),
   })
-}
-
-// Output type per procedure, for response mapping.
-const PROC_OUTPUT: Record<string, string> = {
-  "posts.feed": "FeedPage",
-  "posts.get": "Post",
-  "posts.create": "Post",
-  "posts.update": "Post",
-  "posts.destroy": "Empty",
-  "comments.thread": "CommentList",
-  "comments.create": "Comment",
-  "comments.update": "Comment",
-  "comments.destroy": "Comment",
-  "reactions.mine": "MyReactions",
-  "reactions.toggle": "ReactionState",
-  "profiles.get": "Profile",
-  "profiles.update": "Profile",
-  "uploads.presign": "PresignedUpload",
 }
 
 type ApiShape = {
