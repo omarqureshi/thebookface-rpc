@@ -6,6 +6,8 @@
 // NOT touch map keys, which are data.
 
 
+export const SCHEMA_HASH = "sha256:a02ea9f7d88d7d60207853eb6dae1a4bbb6a9c86d0e5dd399110197f92787c0b"
+
 export interface FeedInput {
   limit?: number
   cursor?: string | null

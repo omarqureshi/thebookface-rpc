@@ -14,6 +14,10 @@ require_relative "config/boot"
 
 run Prospect::RackApp.new(
   Bookface::AppRouter,
+  # Warn by default; PROSPECT_SCHEMA_POLICY=reject to fail stale callers hard.
+  # Rejecting by default would break every browser holding a cached bundle the
+  # moment the contract changed.
+  on_schema_mismatch: ENV.fetch("PROSPECT_SCHEMA_POLICY", "warn").to_sym,
   context_builder: lambda { |env|
     headers = env.each_with_object({}) do |(k, v), acc|
       acc[k.delete_prefix("HTTP_").split("_").map(&:capitalize).join("-")] = v if k.start_with?("HTTP_X_DEV")

@@ -2,7 +2,10 @@
 // generated: retries, batching, auth and error decoding are fixed once here
 // rather than re-emitted into every consumer. See prospect/DESIGN.md §7.
 
-import { WIRE_FIELDS, WIRE_NESTED, PROC_TYPES, ERROR_TYPES, type Procedures } from "./schema"
+import {
+  WIRE_FIELDS, WIRE_NESTED, PROC_TYPES, ERROR_TYPES, SCHEMA_HASH,
+  type Procedures,
+} from "./schema"
 
 type Id = keyof Procedures
 type In<K extends Id> = Procedures[K]["input"]
@@ -57,7 +60,13 @@ interface Pending {
 
 export function createClient(opts: ClientOptions = {}) {
   const url = opts.url ?? "/rpc"
-  const headers = opts.headers ?? (() => ({}))
+  const caller = opts.headers ?? (() => ({}))
+
+  // Sent on every request so the server can detect that this bundle was
+  // generated against an older contract. It is the only drift check that
+  // survives past build time — a cached browser bundle type-checked perfectly
+  // well when it was built.
+  const headers = () => ({ "X-Prospect-Schema": SCHEMA_HASH, ...caller() })
   const batching = opts.batch ?? true
   let queue: Pending[] = []
   let scheduled = false
