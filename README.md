@@ -59,3 +59,21 @@ a legible type diff rather than a rewritten client.
 
 Two users are hardcoded in the header for switching identity, since there's no
 Cognito locally.
+
+## Packaging
+
+Builds one deployable artifact per service. Needs Docker.
+
+```sh
+bundle exec ruby script/package.rb --dry-run   # what would be built
+bundle exec ruby script/package.rb             # build into build/
+```
+
+Each artifact holds the app sources, a generated `handler.rb`, and a standalone
+gem bundle containing only that service's dependencies (`units/*.gemfile`).
+Services whose gemfiles resolve identically share one bundle build — 5 units
+currently collapse to 3.
+
+Every artifact is booted in a Lambda-like container before the build succeeds.
+An unsound slice caught at build time is an inconvenience; caught at invoke time
+it is an outage.

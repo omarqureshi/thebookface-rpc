@@ -1,8 +1,13 @@
-# Shared by every service. Anything here is version-locked identically across
-# all units — Bundler rejects a unit that redeclares one of these with a
-# different constraint, which is what makes shared pins enforced rather than
-# conventional. See prospect/DESIGN.md §6.
-gem "prospect"
+# Shared by every service. Anything here is version-locked identically across all
+# units — Bundler rejects a unit that redeclares one of these with a different
+# constraint, which is what makes shared pins enforced rather than conventional.
+# See prospect/DESIGN.md §6.
+#
+# This declares its own `source` because it is eval_gemfile'd by the per-unit
+# gemfiles during packaging, where there is no root Gemfile to supply one.
+source "https://rubygems.org"
+
+gem "prospect", path: File.expand_path("../../prospect", __dir__)
 gem "sorbet-runtime"
 gem "dynamoid", "~> 3.10"
 gem "aws-sdk-dynamodb", "~> 1"
