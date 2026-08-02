@@ -1,0 +1,993 @@
+{
+  "prospect_schema": "0.1",
+  "types": {
+    "FeedInput": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "limit",
+          "type": {
+            "kind": "scalar",
+            "name": "int"
+          },
+          "default": true
+        },
+        {
+          "name": "cursor",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        }
+      ]
+    },
+    "FeedPage": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "posts",
+          "type": {
+            "kind": "list",
+            "of": {
+              "kind": "ref",
+              "name": "Post"
+            }
+          }
+        },
+        {
+          "name": "next_cursor",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        }
+      ]
+    },
+    "Post": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "body",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "author",
+          "type": {
+            "kind": "ref",
+            "name": "Author"
+          }
+        },
+        {
+          "name": "media",
+          "type": {
+            "kind": "list",
+            "of": {
+              "kind": "ref",
+              "name": "MediaItem"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "reaction_counts",
+          "type": {
+            "kind": "map",
+            "key": {
+              "kind": "scalar",
+              "name": "string"
+            },
+            "value": {
+              "kind": "scalar",
+              "name": "int"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "comment_count",
+          "type": {
+            "kind": "scalar",
+            "name": "int"
+          }
+        },
+        {
+          "name": "created_at",
+          "type": {
+            "kind": "scalar",
+            "name": "timestamp"
+          }
+        },
+        {
+          "name": "editable",
+          "type": {
+            "kind": "scalar",
+            "name": "bool"
+          },
+          "default": true
+        },
+        {
+          "name": "deletable",
+          "type": {
+            "kind": "scalar",
+            "name": "bool"
+          },
+          "default": true
+        }
+      ]
+    },
+    "Author": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "name",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "avatar_key",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        }
+      ]
+    },
+    "MediaItem": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "key",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "content_type",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "width",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "int"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "height",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "int"
+            }
+          },
+          "default": true
+        }
+      ]
+    },
+    "PostId": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        }
+      ]
+    },
+    "CreatePostInput": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "body",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "media",
+          "type": {
+            "kind": "list",
+            "of": {
+              "kind": "ref",
+              "name": "MediaItem"
+            }
+          },
+          "default": true
+        }
+      ]
+    },
+    "UpdatePostInput": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "body",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        }
+      ]
+    },
+    "Empty": {
+      "kind": "struct",
+      "fields": []
+    },
+    "ThreadInput": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "post_id",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        }
+      ]
+    },
+    "CommentList": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "comments",
+          "type": {
+            "kind": "list",
+            "of": {
+              "kind": "ref",
+              "name": "Comment"
+            }
+          }
+        }
+      ]
+    },
+    "Comment": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "path",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "depth",
+          "type": {
+            "kind": "scalar",
+            "name": "int"
+          }
+        },
+        {
+          "name": "body",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "author",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "ref",
+              "name": "Author"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "deleted",
+          "type": {
+            "kind": "scalar",
+            "name": "bool"
+          },
+          "default": true
+        },
+        {
+          "name": "reaction_counts",
+          "type": {
+            "kind": "map",
+            "key": {
+              "kind": "scalar",
+              "name": "string"
+            },
+            "value": {
+              "kind": "scalar",
+              "name": "int"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "created_at",
+          "type": {
+            "kind": "scalar",
+            "name": "timestamp"
+          }
+        },
+        {
+          "name": "editable",
+          "type": {
+            "kind": "scalar",
+            "name": "bool"
+          },
+          "default": true
+        },
+        {
+          "name": "deletable",
+          "type": {
+            "kind": "scalar",
+            "name": "bool"
+          },
+          "default": true
+        }
+      ]
+    },
+    "CreateCommentInput": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "post_id",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "body",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "parent_path",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        }
+      ]
+    },
+    "UpdateCommentInput": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "post_id",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "path",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "body",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        }
+      ]
+    },
+    "CommentRef": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "post_id",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "path",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        }
+      ]
+    },
+    "MyReactions": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "by_target",
+          "type": {
+            "kind": "map",
+            "key": {
+              "kind": "scalar",
+              "name": "string"
+            },
+            "value": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        }
+      ]
+    },
+    "ToggleReactionInput": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "post_id",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "target",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "emoji",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        }
+      ]
+    },
+    "ReactionState": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "target",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "reaction_counts",
+          "type": {
+            "kind": "map",
+            "key": {
+              "kind": "scalar",
+              "name": "string"
+            },
+            "value": {
+              "kind": "scalar",
+              "name": "int"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "mine",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        }
+      ]
+    },
+    "Profile": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "display_name",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "bio",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "avatar_key",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        }
+      ]
+    },
+    "UpdateProfileInput": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "display_name",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "bio",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        },
+        {
+          "name": "avatar_key",
+          "type": {
+            "kind": "optional",
+            "of": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          },
+          "default": true
+        }
+      ]
+    },
+    "PresignInput": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "content_type",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        }
+      ]
+    },
+    "PresignedUpload": {
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "url",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        },
+        {
+          "name": "fields",
+          "type": {
+            "kind": "map",
+            "key": {
+              "kind": "scalar",
+              "name": "string"
+            },
+            "value": {
+              "kind": "scalar",
+              "name": "string"
+            }
+          }
+        },
+        {
+          "name": "key",
+          "type": {
+            "kind": "scalar",
+            "name": "string"
+          }
+        }
+      ]
+    }
+  },
+  "procedures": [
+    {
+      "path": "comments.create",
+      "kind": "mutation",
+      "input": {
+        "kind": "ref",
+        "name": "CreateCommentInput"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "Comment"
+      },
+      "errors": [
+        {
+          "name": "NotFound",
+          "code": "not_found",
+          "fields": [
+            "resource",
+            "id"
+          ]
+        },
+        {
+          "name": "ValidationFailed",
+          "code": "validation_failed",
+          "fields": [
+            "errors"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "comments.destroy",
+      "kind": "mutation",
+      "input": {
+        "kind": "ref",
+        "name": "CommentRef"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "Comment"
+      },
+      "errors": [
+        {
+          "name": "NotFound",
+          "code": "not_found",
+          "fields": [
+            "resource",
+            "id"
+          ]
+        },
+        {
+          "name": "Forbidden",
+          "code": "forbidden",
+          "fields": [
+            "action",
+            "resource"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "comments.thread",
+      "kind": "query",
+      "input": {
+        "kind": "ref",
+        "name": "ThreadInput"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "CommentList"
+      },
+      "errors": []
+    },
+    {
+      "path": "comments.update",
+      "kind": "mutation",
+      "input": {
+        "kind": "ref",
+        "name": "UpdateCommentInput"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "Comment"
+      },
+      "errors": [
+        {
+          "name": "NotFound",
+          "code": "not_found",
+          "fields": [
+            "resource",
+            "id"
+          ]
+        },
+        {
+          "name": "Forbidden",
+          "code": "forbidden",
+          "fields": [
+            "action",
+            "resource"
+          ]
+        },
+        {
+          "name": "ValidationFailed",
+          "code": "validation_failed",
+          "fields": [
+            "errors"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "posts.create",
+      "kind": "mutation",
+      "input": {
+        "kind": "ref",
+        "name": "CreatePostInput"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "Post"
+      },
+      "errors": [
+        {
+          "name": "ValidationFailed",
+          "code": "validation_failed",
+          "fields": [
+            "errors"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "posts.destroy",
+      "kind": "mutation",
+      "input": {
+        "kind": "ref",
+        "name": "PostId"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "Empty"
+      },
+      "errors": [
+        {
+          "name": "NotFound",
+          "code": "not_found",
+          "fields": [
+            "resource",
+            "id"
+          ]
+        },
+        {
+          "name": "Forbidden",
+          "code": "forbidden",
+          "fields": [
+            "action",
+            "resource"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "posts.feed",
+      "kind": "query",
+      "input": {
+        "kind": "ref",
+        "name": "FeedInput"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "FeedPage"
+      },
+      "errors": []
+    },
+    {
+      "path": "posts.get",
+      "kind": "query",
+      "input": {
+        "kind": "ref",
+        "name": "PostId"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "Post"
+      },
+      "errors": [
+        {
+          "name": "NotFound",
+          "code": "not_found",
+          "fields": [
+            "resource",
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "posts.update",
+      "kind": "mutation",
+      "input": {
+        "kind": "ref",
+        "name": "UpdatePostInput"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "Post"
+      },
+      "errors": [
+        {
+          "name": "NotFound",
+          "code": "not_found",
+          "fields": [
+            "resource",
+            "id"
+          ]
+        },
+        {
+          "name": "Forbidden",
+          "code": "forbidden",
+          "fields": [
+            "action",
+            "resource"
+          ]
+        },
+        {
+          "name": "ValidationFailed",
+          "code": "validation_failed",
+          "fields": [
+            "errors"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "profiles.get",
+      "kind": "query",
+      "input": {
+        "kind": "ref",
+        "name": "Empty"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "Profile"
+      },
+      "errors": []
+    },
+    {
+      "path": "profiles.update",
+      "kind": "mutation",
+      "input": {
+        "kind": "ref",
+        "name": "UpdateProfileInput"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "Profile"
+      },
+      "errors": [
+        {
+          "name": "ValidationFailed",
+          "code": "validation_failed",
+          "fields": [
+            "errors"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "reactions.mine",
+      "kind": "query",
+      "input": {
+        "kind": "ref",
+        "name": "ThreadInput"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "MyReactions"
+      },
+      "errors": []
+    },
+    {
+      "path": "reactions.toggle",
+      "kind": "mutation",
+      "input": {
+        "kind": "ref",
+        "name": "ToggleReactionInput"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "ReactionState"
+      },
+      "errors": [
+        {
+          "name": "NotFound",
+          "code": "not_found",
+          "fields": [
+            "resource",
+            "id"
+          ]
+        },
+        {
+          "name": "UnsupportedReaction",
+          "code": "unsupported_reaction",
+          "fields": [
+            "emoji"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "uploads.presign",
+      "kind": "mutation",
+      "input": {
+        "kind": "ref",
+        "name": "PresignInput"
+      },
+      "output": {
+        "kind": "ref",
+        "name": "PresignedUpload"
+      },
+      "errors": [
+        {
+          "name": "UnsupportedMediaType",
+          "code": "unsupported_media_type",
+          "fields": [
+            "content_type"
+          ]
+        }
+      ]
+    }
+  ],
+  "schema_hash": "sha256:a02ea9f7d88d7d60207853eb6dae1a4bbb6a9c86d0e5dd399110197f92787c0b"
+}

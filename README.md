@@ -39,3 +39,23 @@ curl -X POST 'localhost:9292/rpc?batch=1' -H 'Content-Type: application/json' -d
 ```
 
 `GET /up` lists every registered procedure.
+
+## Frontend
+
+```sh
+script/dev.sh up                 # API on :9292
+cd web && npm install && npm run dev   # UI on :5173, proxies /rpc
+```
+
+Types are **generated from the router**, never hand-written:
+
+```sh
+cd web && npm run schema         # -> src/api/schema.ts
+```
+
+`src/api/client.ts` is hand-written and generic over the generated `Procedures`
+map — retries, batching and error decoding live there, so regenerating produces
+a legible type diff rather than a rewritten client.
+
+Two users are hardcoded in the header for switching identity, since there's no
+Cognito locally.
