@@ -1,0 +1,8 @@
+# DynamoDB Local — the only infrastructure the local loop needs. S3 and SQS are
+# stubbed in-process (see MediaStorage / ProfileReconciliation), so there's no
+# LocalStack and no AWS credentials required.
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    ports: ["8000:8000"]

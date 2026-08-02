@@ -1,0 +1,3 @@
+eval_gemfile File.expand_path("../common.gemfile", __dir__)
+gem "aws-sdk-s3", "~> 1"   # avatar key ownership check
+gem "aws-sdk-sqs", "~> 1"  # ProfileReconciliation.enqueue

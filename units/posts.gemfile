@@ -1,0 +1,2 @@
+eval_gemfile File.expand_path("../common.gemfile", __dir__)
+gem "aws-sdk-s3", "~> 1"   # destroy_with_thread! reaps attached images
