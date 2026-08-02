@@ -64,12 +64,17 @@ module Bookface
       end
 
       # Cascading delete across posts, comments and reactions, then S3. Slower
-      # and burstier than the rest of the service, hence its own deploy
-      # override — which does mean this one procedure becomes a separate
-      # Lambda. DESIGN.md §6.6 flags the tension with "service per controller".
+      # and burstier than the rest of the service, so it takes its own Lambda.
+      #
+      # `granularity: :dedicated` matters here rather than being decoration:
+      # without it this procedure shares the posts function and drags the whole
+      # service — including the hot `feed` path — up to 1769MB, because the
+      # construct takes the largest requested memory for a shared unit.
+      # Confirmed by synthesising it both ways.
       mutation :destroy, input: Schema::PostId, output: Schema::Empty,
                errors: [Schema::Errors::NotFound, Schema::Errors::Forbidden],
-               deploy: { memory_size: 1769, timeout: 60 } do |input, ctx|
+               deploy: { memory_size: 1769, timeout_seconds: 60,
+                         granularity: :dedicated } do |input, ctx|
         post = Find.post(input.id)
         Authorize.call(ctx, :destroy, post)
         post.destroy_with_thread!

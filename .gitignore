@@ -6,3 +6,5 @@ vendor/bundle/
 web/node_modules/
 web/dist/
 build/
+infra/cdk.out/
+infra/node_modules/

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "aws-cdk-lib"
+require "prospect/cdk"
 require_relative "../../app/app_router"
 
 # The whole deployment. Note what is NOT here: no per-function definitions, no
@@ -10,13 +11,24 @@ require_relative "../../app/app_router"
 #
 # Adding a procedure is a one-line change in a service file. This stack does not
 # change.
+#
+# Artifacts must be built first — the construct reads `code_root`, it does not
+# create it:
+#
+#   bundle exec ruby script/package.rb
+#   cd infra && bundle exec cdk deploy
 class BookfaceStack < AWSCDK::Stack
-  def initialize(scope, id, props = nil)
-    super
+  # `stage` is a separate keyword rather than a props key: AWSCDK::StackProps is
+  # strict and rejects unknown keys, so app config cannot ride along inside it.
+  def initialize(scope, id, props = nil, stage: "staging")
+    super(scope, id, props)
 
     posts     = table(id: "Posts",     partition: "id")
     comments  = table(id: "Comments",  partition: "post_id", sort: "path")
-    reactions = table(id: "Reactions", partition: "post_id", sort: "target_user")
+    # Sort key is `sk` ("<user_sub>#<target>"), matching Reaction's `range :sk`.
+    # An earlier draft said `target_user`, which would have made every reaction
+    # write fail against the deployed table.
+    reactions = table(id: "Reactions", partition: "post_id", sort: "sk")
     profiles  = table(id: "Profiles",  partition: "sub")
 
     media = AWSCDK::S3::Bucket.new(self, "Media", {
@@ -40,20 +52,31 @@ class BookfaceStack < AWSCDK::Stack
       architecture: AWSCDK::Lambda::Architecture.X86_64,
       runtime:      AWSCDK::Lambda::Runtime.RUBY_4_0,
 
+      # Built by script/package.rb. The construct reads this; it does not build.
+      code_root: File.expand_path("../../build", __dir__),
+
       # Measured, not guessed: 1024MB roughly halves cold start against 512MB at
       # near-identical GB-seconds. Prospect DESIGN.md §6.
-      defaults: { memory_size: 1024, timeout: AWSCDK::Duration.seconds(10) },
+      defaults: { memory_size: 1024, timeout_seconds: 10 },
 
       authorizer: {
-        kind:      :jwt,
-        issuer:    pool.user_pool_provider_url,
-        audience:  [client.user_pool_client_id],
-        # Public reads: the feed and post views work signed out, matching
-        # Ability's `can :read, [Post, Comment]`.
+        kind:     :jwt,
+        issuer:   pool.user_pool_provider_url,
+        audience: [client.user_pool_client_id],
+        # Public reads, matching Ability's `can :read, [Post, Comment]`.
+        #
+        # CAVEAT (Prospect §6): an API Gateway JWT authorizer is all-or-nothing,
+        # so these four routes receive NO verified claims even when the caller is
+        # signed in. `posts.get` will report editable/deletable false, and
+        # `reactions.mine` will return empty, for everyone. Fixing that needs a
+        # Lambda authorizer that allows anonymous through while attaching claims
+        # when present — not yet built. Listed here so the gap is visible in the
+        # stack rather than only in a design doc.
         anonymous: %w[posts.feed posts.get comments.thread reactions.mine]
       },
 
       environment: {
+        "BOOKFACE_ENV"    => stage,
         "POSTS_TABLE"     => posts.table_name,
         "COMMENTS_TABLE"  => comments.table_name,
         "REACTIONS_TABLE" => reactions.table_name,
@@ -78,11 +101,9 @@ class BookfaceStack < AWSCDK::Stack
     media.grant_put(api.function(:uploads))
     media.grant_delete(api.function(:posts))                # reap on delete
 
-    # Async denormalization fan-out. A Lambda, but an event handler rather than
-    # a procedure — deliberately outside the router. DESIGN.md §5.
-    reconcile_queue(profiles, posts, comments)
-
     AWSCDK::CfnOutput.new(self, "ApiUrl", { value: api.url })
+    AWSCDK::CfnOutput.new(self, "UserPoolId", { value: pool.user_pool_id })
+    AWSCDK::CfnOutput.new(self, "UserPoolClientId", { value: client.user_pool_client_id })
   end
 
   private
@@ -94,13 +115,5 @@ class BookfaceStack < AWSCDK::Stack
     }
     props[:sort_key] = { name: sort, type: AWSCDK::DynamoDB::AttributeType::STRING } if sort
     AWSCDK::DynamoDB::TableV2.new(self, id, props)
-  end
-
-  def reconcile_queue(profiles, posts, comments)
-    queue = AWSCDK::SQS::Queue.new(self, "ProfileReconcile", {
-      visibility_timeout: AWSCDK::Duration.seconds(120)
-    })
-    # ... handler wiring omitted from the skeleton; it is not a Prospect service.
-    [ profiles, posts, comments ] && queue
   end
 end
