@@ -3,23 +3,21 @@
 Bookface as a [Prospect](../../prospect) app — one service per controller, each
 a Lambda. See [DESIGN.md](DESIGN.md). No UI.
 
-## Repository layout
+## Prerequisite: a GitHub Packages credential
 
-This app depends on [prospect](https://github.com/omarqureshi/prospect) as a
-**path gem**, so the two must be cloned as siblings:
+[prospect](https://github.com/omarqureshi/prospect) comes from GitHub Packages,
+which requires a credential **even though the package is public** — that is a
+GitHub Packages constraint, not a choice:
 
+```sh
+bundle config set --global rubygems.pkg.github.com YOUR_GITHUB_USER:YOUR_TOKEN
 ```
-repos/
-  prospect/
-  thebookface-rpc/
-```
 
-`path:` rather than `git:` on purpose: the two are developed together, and a
-change to the framework should be visible here without a commit and a bundle
-update. It is also what makes packaging work — `script/package.rb` mounts the
-prospect checkout into the build container, which a git-sourced gem would not
-need but a path gem does. Once prospect is published, the `mounts:` option and
-these path references both go away.
+`script/package.rb` forwards it into the build container, since the container
+inherits nothing from the host. It reads `BUNDLE_RUBYGEMS__PKG__GITHUB__COM`
+first, so CI can pass one explicitly.
+
+The credential is only ever forwarded, never written into the artifact.
 
 ## Local
 

@@ -7,7 +7,9 @@
 # gemfiles during packaging, where there is no root Gemfile to supply one.
 source "https://rubygems.org"
 
-gem "prospect", path: File.expand_path("../../prospect", __dir__)
+source "https://rubygems.pkg.github.com/omarqureshi" do
+  gem "prospect", "~> 0.0.2"
+end
 gem "sorbet-runtime"
 gem "dynamoid", "~> 3.10"
 gem "aws-sdk-dynamodb", "~> 1"

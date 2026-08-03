@@ -1,10 +1,3 @@
-PATH
-  remote: ../../../prospect
-  specs:
-    prospect (0.0.1)
-      rack (~> 3.0)
-      sorbet-runtime
-
 GEM
   remote: https://rubygems.omarqureshi.net/
   specs:
@@ -89,6 +82,13 @@ GEM
       concurrent-ruby (~> 1.0)
     uri (1.1.1)
 
+GEM
+  remote: https://rubygems.pkg.github.com/omarqureshi/
+  specs:
+    prospect (0.0.2)
+      rack (~> 3.0)
+      sorbet-runtime
+
 PLATFORMS
   ruby
   x86_64-linux
@@ -103,7 +103,7 @@ DEPENDENCIES
   constructs (>= 0.0.0.pre)!
   dynamoid (~> 3.10)
   jsii-ruby-runtime (>= 0.0.0.pre)!
-  prospect!
+  prospect (~> 0.0.2)!
 
 CHECKSUMS
   activemodel (8.1.3.1) sha256=99cc02ce2faec371d14440949d85787ebd23a907c9baef0a9d4bcd4d21888f88
@@ -133,7 +133,7 @@ CHECKSUMS
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
   minitest (6.0.6) sha256=153ea36d1d987a62942382b61075745042a2b3123b1cd48f4c3675af9cc7d6f1
   prism (1.9.0) sha256=7b530c6a9f92c24300014919c9dcbc055bf4cdf51ec30aed099b06cd6674ef85
-  prospect (0.0.1)
+  prospect (0.0.2) sha256=5d0f86b61aafb55d26af3d1024b33223a5032840ac7c257fbb5ed46c3f07aca5
   rack (3.2.6) sha256=5ed78e1f73b2e25679bec7d45ee2d4483cc4146eb1be0264fc4d94cb5ef212c2
   securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1
   sorbet-runtime (0.6.13393) sha256=920a2d35f69cb268fd8a1da8fe721b543cc2d8e9b3ae90df55105fa191bdcf96

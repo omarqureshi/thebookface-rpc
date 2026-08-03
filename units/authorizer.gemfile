@@ -4,5 +4,7 @@
 # off the critical path of every authenticated request.
 source "https://rubygems.org"
 
-gem "prospect", path: File.expand_path("../../../prospect", __dir__)
+source "https://rubygems.pkg.github.com/omarqureshi" do
+  gem "prospect", "~> 0.0.2"
+end
 gem "jwt", "~> 3.1"

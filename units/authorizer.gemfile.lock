@@ -1,10 +1,3 @@
-PATH
-  remote: /home/omarqureshi/repos/prospect
-  specs:
-    prospect (0.0.1)
-      rack (~> 3.0)
-      sorbet-runtime
-
 GEM
   remote: https://rubygems.org/
   specs:
@@ -14,18 +7,25 @@ GEM
     rack (3.2.6)
     sorbet-runtime (0.6.13393)
 
+GEM
+  remote: https://rubygems.pkg.github.com/omarqureshi/
+  specs:
+    prospect (0.0.2)
+      rack (~> 3.0)
+      sorbet-runtime
+
 PLATFORMS
   ruby
   x86_64-linux
 
 DEPENDENCIES
   jwt (~> 3.1)
-  prospect!
+  prospect (~> 0.0.2)!
 
 CHECKSUMS
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   jwt (3.2.0) sha256=5419b1fe37b1da0982bd07051f573a8b8789ab724c2aa7e785e4784a3ed217d7
-  prospect (0.0.1)
+  prospect (0.0.2) sha256=5d0f86b61aafb55d26af3d1024b33223a5032840ac7c257fbb5ed46c3f07aca5
   rack (3.2.6) sha256=5ed78e1f73b2e25679bec7d45ee2d4483cc4146eb1be0264fc4d94cb5ef212c2
   sorbet-runtime (0.6.13393) sha256=920a2d35f69cb268fd8a1da8fe721b543cc2d8e9b3ae90df55105fa191bdcf96
 

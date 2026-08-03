@@ -1,6 +1,8 @@
 source "https://rubygems.org"
 
-gem "prospect", path: "../../../prospect"
+source "https://rubygems.pkg.github.com/omarqureshi" do
+  gem "prospect", "~> 0.0.2"
+end
 gem "dynamoid", "~> 3.10"
 gem "aws-sdk-dynamodb", "~> 1"
 gem "cancancan", "~> 3.6"
