@@ -11,6 +11,10 @@ module Bookface
     # straight from the browser via uploads.presign.
     class MediaItem < T::Struct
       const :key,          String
+      # Where to actually fetch it. Sent rather than derived, so the client
+      # never has to know the store's layout — and so moving to CloudFront is a
+      # server change, not a client release.
+      const :url,          String
       const :content_type, String
       const :width,        T.nilable(Integer)
       const :height,       T.nilable(Integer)
@@ -23,6 +27,9 @@ module Bookface
     class Author < T::Struct
       const :name,       String
       const :avatar_key, T.nilable(String)
+      # Same reasoning as MediaItem#url: the client renders what it is given
+      # rather than reconstructing a URL from a key.
+      const :avatar_url, T.nilable(String)
     end
 
     class Post < T::Struct
@@ -77,6 +84,10 @@ module Bookface
       const :display_name, T.nilable(String)
       const :bio,          T.nilable(String)
       const :avatar_key,   T.nilable(String)
+      const :avatar_url,   T.nilable(String)
+      # The name to show: the chosen display name, else the identity provider's.
+      # Computed server-side so every client agrees on the fallback.
+      const :shown_name,   String
     end
 
     # A cursor-paginated feed page.

@@ -16,7 +16,8 @@ module Bookface
     authenticated do
       # show and edit collapse into one query — `edit` only rendered a form.
       query :get, input: Schema::Empty, output: Schema::Profile do |_input, ctx|
-        Present.profile(Profile.for(ctx.authenticated!.sub))
+        viewer = ctx.authenticated!
+        Present.profile(Profile.for(viewer.sub), viewer)
       end
 
       mutation :update, input: Schema::UpdateProfileInput, output: Schema::Profile,
@@ -36,7 +37,7 @@ module Bookface
         # it's an SQS event handler and stays outside the router. DESIGN.md §5.
         ProfileReconciliation.enqueue(viewer.sub)
 
-        Present.profile(profile)
+        Present.profile(profile, viewer)
       end
     end
 

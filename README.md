@@ -77,3 +77,31 @@ currently collapse to 3.
 Every artifact is booted in a Lambda-like container before the build succeeds.
 An unsound slice caught at build time is an inconvenience; caught at invoke time
 it is an outage.
+
+## Cucumber
+
+27 scenarios ported from the Rails app, running in a real headless browser
+against the SPA, the API and DynamoDB Local.
+
+```sh
+cd web && npx @puppeteer/browsers install chrome@stable   # once
+script/cucumber.sh                                        # everything
+script/cucumber.sh features/comments.feature              # one file
+```
+
+The script starts the API and the Vite dev server, waits for both, runs the
+suite and tears them down.
+
+**What ported unchanged:** every `.feature` file, and every step that seeds
+through the Dynamoid models. The Gherkin described user behaviour, not Rails.
+
+**What had to be rewritten:** the harness and the interaction steps. The old
+suite used `cucumber-rails` and drove server-rendered HTML in-process with
+`rack_test`. Here the UI is a React SPA, so nothing exists until JavaScript has
+run — every scenario needs a real browser, and Capybara must not boot a Rack app
+of its own.
+
+**Two steps deliberately bypass the UI.** "I try to edit a post I do not own" and
+"a forged delete" forge the call the way a hostile client would and assert the
+server refuses. The UI never renders those controls, so driving it would test
+the client's manners rather than the security boundary.

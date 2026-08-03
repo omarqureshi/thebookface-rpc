@@ -114,24 +114,34 @@ module Bookface
       )
     end
 
-    def profile(record)
+    def profile(record, viewer = nil)
       Schema::Profile.new(
         display_name: record.display_name,
         bio:          record.bio,
-        avatar_key:   record.avatar_key
+        avatar_key:   record.avatar_key,
+        avatar_url:   (MediaStorage.public_url(record.avatar_key) if record.avatar_key.present?),
+        shown_name:   record.shown_name.presence || viewer&.name.to_s
       )
     end
 
     def author(record)
-      Schema::Author.new(name: record.author_name.to_s, avatar_key: record.author_avatar)
+      Schema::Author.new(
+        name:       record.author_name.to_s,
+        avatar_key: record.author_avatar,
+        avatar_url: (MediaStorage.public_url(record.author_avatar) if record.author_avatar.present?)
+      )
     end
 
     def media(item)
       Schema::MediaItem.new(
         key:          item["key"],
+        url:          MediaStorage.public_url(item["key"]),
         content_type: item["content_type"],
-        width:        item["width"],
-        height:       item["height"]
+        # .to_i is load-bearing: DynamoDB has one numeric type and Dynamoid
+        # hands it back as BigDecimal, so an Integer field would reject it.
+        # Same shape of problem as DateTime vs Time — see DESIGN.md §6.
+        width:        item["width"]&.to_i,
+        height:       item["height"]&.to_i
       )
     end
   end

@@ -9,10 +9,32 @@ export interface DevUser {
   name: string
 }
 
-let currentUser: DevUser | null = null
+// Persisted, so a page load does not sign you out. Deployed this is a token in
+// storage rather than a persona, but the lifetime is the same: identity has to
+// outlive the JS module that holds it.
+const STORAGE_KEY = "bookface.dev-user"
+
+function restore(): DevUser | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? (JSON.parse(raw) as DevUser) : null
+  } catch {
+    return null
+  }
+}
+
+let currentUser: DevUser | null = restore()
+
 export const setUser = (u: DevUser | null) => {
   currentUser = u
+  try {
+    if (u) localStorage.setItem(STORAGE_KEY, JSON.stringify(u))
+    else localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    /* private mode; identity just won't survive a reload */
+  }
 }
+
 export const getUser = () => currentUser
 
 export const api = createClient({

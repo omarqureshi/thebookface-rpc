@@ -13,6 +13,16 @@ module Bookface
       const :cursor, T.nilable(String)
     end
 
+    # What the browser can honestly report after uploading: the key it was
+    # given, plus what it uploaded. Dimensions are optional because reading them
+    # requires decoding the image.
+    class UploadedMedia < T::Struct
+      const :key,          String
+      const :content_type, String
+      const :width,        T.nilable(Integer)
+      const :height,       T.nilable(Integer)
+    end
+
     class PostId < T::Struct
       const :id, String
     end
@@ -22,7 +32,9 @@ module Bookface
       # Client uploads to S3 first (uploads.presign), then sends the keys. In
       # Rails this arrived as `media_json`, a JSON string parsed by
       # AttachedMedia; here it's already typed, so that parsing disappears.
-      const :media, T::Array[MediaItem], default: []
+      # Only the key and content type come from the client; `url` is filled in
+      # by the server on the way out.
+      const :media, T::Array[UploadedMedia], default: []
     end
 
     class UpdatePostInput < T::Struct

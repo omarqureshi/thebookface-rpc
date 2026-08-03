@@ -8,3 +8,5 @@ web/dist/
 build/
 infra/cdk.out/
 infra/node_modules/
+tmp/
+web/chrome/

@@ -26,3 +26,13 @@ button:disabled { opacity: .5; cursor: default; }
 .chip .count { margin-left: .3rem; font-size: .8rem; opacity: .7; }
 .reactions { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .5rem; }
 .comment { padding: .6rem .8rem; }
+.avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+.avatar.large { width: 56px; height: 56px; }
+.media img, img.media { max-width: 100%; height: auto; border-radius: 8px; margin-top: .5rem; }
+.link.plain { text-decoration: none; opacity: 1; font-size: inherit; font-weight: inherit; }
+label { display: flex; flex-direction: column; gap: .25rem; font-size: .85rem; }
+input[type="text"], label input:not([type="file"]) {
+  padding: .5rem; border-radius: 8px; border: 1px solid var(--line);
+  background: transparent; color: inherit; font: inherit;
+}
+h2 { font-size: 1.1rem; margin: 0; }

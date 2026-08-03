@@ -6,7 +6,7 @@
 // NOT touch map keys, which are data.
 
 
-export const SCHEMA_HASH = "sha256:a02ea9f7d88d7d60207853eb6dae1a4bbb6a9c86d0e5dd399110197f92787c0b"
+export const SCHEMA_HASH = "sha256:63e367fd5d3c55328c07d65a5b78353ae73776980df2c7f8739cd7da02c7745c"
 
 export interface FeedInput {
   limit?: number
@@ -33,10 +33,12 @@ export interface Post {
 export interface Author {
   name: string
   avatarKey?: string | null
+  avatarUrl?: string | null
 }
 
 export interface MediaItem {
   key: string
+  url: string
   contentType: string
   width?: number | null
   height?: number | null
@@ -48,7 +50,14 @@ export interface PostId {
 
 export interface CreatePostInput {
   body?: string | null
-  media?: MediaItem[]
+  media?: UploadedMedia[]
+}
+
+export interface UploadedMedia {
+  key: string
+  contentType: string
+  width?: number | null
+  height?: number | null
 }
 
 export interface UpdatePostInput {
@@ -117,6 +126,8 @@ export interface Profile {
   displayName?: string | null
   bio?: string | null
   avatarKey?: string | null
+  avatarUrl?: string | null
+  shownName: string
 }
 
 export interface UpdateProfileInput {
@@ -187,8 +198,9 @@ export const WIRE_FIELDS: Record<string, Record<string, string>> = {
   UnsupportedMediaType: { contentType: "content_type" },
   FeedPage: { nextCursor: "next_cursor" },
   Post: { reactionCounts: "reaction_counts", commentCount: "comment_count", createdAt: "created_at" },
-  Author: { avatarKey: "avatar_key" },
+  Author: { avatarKey: "avatar_key", avatarUrl: "avatar_url" },
   MediaItem: { contentType: "content_type" },
+  UploadedMedia: { contentType: "content_type" },
   ThreadInput: { postId: "post_id" },
   Comment: { reactionCounts: "reaction_counts", createdAt: "created_at" },
   CreateCommentInput: { postId: "post_id", parentPath: "parent_path" },
@@ -197,7 +209,7 @@ export const WIRE_FIELDS: Record<string, Record<string, string>> = {
   MyReactions: { byTarget: "by_target" },
   ToggleReactionInput: { postId: "post_id" },
   ReactionState: { reactionCounts: "reaction_counts" },
-  Profile: { displayName: "display_name", avatarKey: "avatar_key" },
+  Profile: { displayName: "display_name", avatarKey: "avatar_key", avatarUrl: "avatar_url", shownName: "shown_name" },
   UpdateProfileInput: { displayName: "display_name", avatarKey: "avatar_key" },
   PresignInput: { contentType: "content_type" },
 }
@@ -206,7 +218,7 @@ export const WIRE_FIELDS: Record<string, Record<string, string>> = {
 export const WIRE_NESTED: Record<string, Record<string, string>> = {
   FeedPage: { posts: "Post" },
   Post: { author: "Author", media: "MediaItem" },
-  CreatePostInput: { media: "MediaItem" },
+  CreatePostInput: { media: "UploadedMedia" },
   CommentList: { comments: "Comment" },
   Comment: { author: "Author" },
 }

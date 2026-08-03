@@ -11,3 +11,14 @@ gem "cancancan", "~> 3.6"
 gem "rack", "~> 3.0"
 gem "rackup"
 gem "puma"
+
+group :test do
+  # Plain cucumber, NOT cucumber-rails: there is no Rails, and no server-rendered
+  # HTML to drive with rack_test. Every scenario runs against the real SPA in a
+  # real browser, which is the only honest way to test a client that does its
+  # rendering in JavaScript.
+  gem "cucumber", "~> 9.2"
+  gem "capybara", "~> 3.40"
+  gem "cuprite", "~> 0.15"
+  gem "rspec-expectations", "~> 3.13"
+end
