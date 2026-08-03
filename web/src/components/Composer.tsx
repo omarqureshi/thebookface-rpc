@@ -1,6 +1,7 @@
 import { useRef, useState } from "react"
-import { api, RpcError } from "../api"
+import { api, RpcError, getUser } from "../api"
 import { uploadImage } from "../upload"
+import { Avatar } from "./Avatar"
 import type { UploadedMedia } from "../api/schema"
 
 // Turns a typed contract error into something a person can read. Errors are a
@@ -32,13 +33,15 @@ export function errorMessage(e: unknown): string {
 export function Composer({ onPosted }: { onPosted: () => void }) {
   const [body, setBody] = useState("")
   const [media, setMedia] = useState<UploadedMedia[]>([])
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+  const me = getUser()
 
   async function attach(file: File | undefined) {
     if (!file) return
-    setBusy(true)
+    setUploading(true)
     setError(null)
     try {
       const uploaded = await uploadImage(file)
@@ -46,7 +49,7 @@ export function Composer({ onPosted }: { onPosted: () => void }) {
     } catch (e) {
       setError(errorMessage(e))
     } finally {
-      setBusy(false)
+      setUploading(false)
     }
   }
 
@@ -68,20 +71,32 @@ export function Composer({ onPosted }: { onPosted: () => void }) {
 
   return (
     <div className="card composer" data-testid="composer">
-      <textarea
-        value={body}
-        aria-label="What's on your mind?"
-        placeholder="What's on your mind?"
-        onChange={(e) => setBody(e.target.value)}
-      />
-
-      {media.length > 0 && (
-        <p className="muted" data-testid="attached-count">
-          {media.length} image{media.length === 1 ? "" : "s"} attached
-        </p>
+      {error && (
+        <div className="field-errors" role="alert">
+          {error}
+        </div>
       )}
 
-      <div className="row">
+      <div className="composer__row">
+        <Avatar name={me?.name} />
+        <textarea
+          className="composer__input"
+          rows={2}
+          value={body}
+          aria-label="What's on your mind?"
+          placeholder={`What's on your mind${me ? `, ${me.name.split(" ")[0]}` : ""}?`}
+          onChange={(e) => setBody(e.target.value)}
+        />
+      </div>
+
+      <div className="composer__previews">
+        {media.map((m) => (
+          <span key={m.key} className="upload-tile" data-testid="attached-count" />
+        ))}
+        {uploading && <span className="upload-tile is-loading" />}
+      </div>
+
+      <div className="composer__actions">
         <input
           ref={fileInput}
           type="file"
@@ -89,14 +104,9 @@ export function Composer({ onPosted }: { onPosted: () => void }) {
           aria-label="Attach an image"
           onChange={(e) => attach(e.target.files?.[0])}
         />
-        <button onClick={submit} disabled={busy}>
+        <button className="btn btn--primary" onClick={submit} disabled={busy || uploading}>
           {busy ? "Posting…" : "Post"}
         </button>
-        {error && (
-          <span className="error" role="alert">
-            {error}
-          </span>
-        )}
       </div>
     </div>
   )

@@ -3,6 +3,7 @@ import { api } from "../api"
 import type { Profile } from "../api/schema"
 import { uploadImage } from "../upload"
 import { errorMessage } from "./Composer"
+import { Avatar } from "./Avatar"
 
 export function ProfilePage({ onDone, onSaved }: { onDone: () => void; onSaved?: () => void }) {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -26,8 +27,8 @@ export function ProfilePage({ onDone, onSaved }: { onDone: () => void; onSaved?:
     setError(null)
     try {
       // Same presign flow as post images. The server only honours a key under
-      // the caller's own prefix, so a key from elsewhere is silently ignored
-      // rather than trusted.
+      // the caller's own prefix, so a key from elsewhere is ignored rather
+      // than trusted.
       const media = await uploadImage(file)
       setAvatarKey(media.key)
     } catch (e) {
@@ -53,41 +54,60 @@ export function ProfilePage({ onDone, onSaved }: { onDone: () => void; onSaved?:
     }
   }
 
-  if (!profile) return <p className="muted">Loading…</p>
+  if (!profile) return <p className="empty">Loading…</p>
 
   return (
-    <div data-testid="profile">
-      <button className="link" onClick={onDone}>
-        ← back
+    <div className="feed" data-testid="profile">
+      <button className="backlink" onClick={onDone}>
+        ← Back to feed
       </button>
 
       <article className="card">
-        <div className="byline">
-          {profile.avatarUrl && (
-            <img className="avatar large" src={profile.avatarUrl} alt="" data-testid="profile-avatar" />
-          )}
+        <div className="profile__head">
+          <Avatar
+            name={profile.shownName}
+            url={profile.avatarUrl}
+            size="avatar--lg"
+            testId={profile.avatarUrl ? "profile-avatar" : undefined}
+          />
           {/* shown_name is computed server-side, so every client agrees on the
               fallback from display name to identity-provider name. */}
-          <h2>{profile.shownName}</h2>
+          <h1 className="profile__name">{profile.shownName}</h1>
         </div>
-        {profile.bio && <p>{profile.bio}</p>}
+        {profile.bio && <p className="profile__bio">{profile.bio}</p>}
       </article>
 
-      <div className="card composer">
-        <label>
-          Display name
+      <div className="card">
+        {saved && <div className="flash flash--notice">Profile saved.</div>}
+        {error && (
+          <div className="field-errors" role="alert">
+            {error}
+          </div>
+        )}
+
+        <label className="field">
+          <span className="field__label">Display name</span>
           <input
+            className="field__input"
             aria-label="Display name"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
           />
         </label>
-        <label>
-          Bio
-          <textarea aria-label="Bio" value={bio} onChange={(e) => setBio(e.target.value)} />
+
+        <label className="field">
+          <span className="field__label">Bio</span>
+          <textarea
+            className="field__input"
+            aria-label="Bio"
+            rows={3}
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+          />
         </label>
-        <label>
-          Photo
+
+        <label className="field">
+          <span className="field__label">Photo</span>
           <input
             type="file"
             accept="image/*"
@@ -95,14 +115,11 @@ export function ProfilePage({ onDone, onSaved }: { onDone: () => void; onSaved?:
             onChange={(e) => attach(e.target.files?.[0])}
           />
         </label>
-        <div className="row">
-          <button onClick={save}>Save profile</button>
-          {saved && <span className="muted">Profile saved.</span>}
-          {error && (
-            <span className="error" role="alert">
-              {error}
-            </span>
-          )}
+
+        <div className="composer__actions">
+          <button className="btn btn--primary" onClick={save}>
+            Save profile
+          </button>
         </div>
       </div>
     </div>

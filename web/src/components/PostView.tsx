@@ -3,6 +3,9 @@ import { api, getUser } from "../api"
 import type { Comment, Post } from "../api/schema"
 import { Reactions } from "./Reactions"
 import { errorMessage } from "./Composer"
+import { Avatar } from "./Avatar"
+import { Byline, Media } from "./Feed"
+import { timeAgo } from "../time"
 
 function CommentNode({
   comment,
@@ -36,97 +39,116 @@ function CommentNode({
   }
 
   return (
-    // Flat list, indented by depth — the materialized path already arrives in
-    // pre-order, so no recursion is needed to render the tree.
+    // Flat list, indented through the --indent custom property the CSS reads.
+    // The materialized path already arrives in pre-order, so no recursion is
+    // needed to render the tree.
     <div
-      className="card comment"
+      className="comment"
       data-testid="comment"
       data-depth={comment.depth}
-      style={{ marginLeft: comment.depth * 24 }}
+      style={{ ["--indent" as any]: comment.depth }}
     >
-      {comment.deleted ? (
-        <p className="muted">[comment deleted]</p>
-      ) : editing ? (
-        <div className="composer">
-          <textarea aria-label="Edit comment" value={draft} onChange={(e) => setDraft(e.target.value)} />
-          <div className="row">
-            <button onClick={() => act(() => api.comments.update({ postId, path: comment.path, body: draft }))}>
-              Save
-            </button>
-            <button className="link" onClick={() => setEditing(false)}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="byline">
-            {comment.author?.avatarUrl && <img className="avatar" src={comment.author.avatarUrl} alt="" />}
-            <strong>{comment.author?.name}</strong>
-            <time>{new Date(comment.createdAt).toLocaleString()}</time>
-          </div>
-          <p>{comment.body}</p>
-        </>
-      )}
+      <Avatar name={comment.author?.name} url={comment.author?.avatarUrl} size="avatar--sm" />
 
-      <Reactions
-        postId={postId}
-        target={target}
-        counts={counts}
-        mine={mine[target] ?? null}
-        onChanged={(c) => setCounts(c)}
-      />
-
-      <div className="row">
-        {getUser() && !comment.deleted && (
-          <button className="link" onClick={() => setReplying((r) => !r)}>
-            Reply
-          </button>
-        )}
-        {comment.editable && !comment.deleted && (
-          <button
-            className="link"
-            onClick={() => {
-              setDraft(comment.body ?? "")
-              setEditing(true)
-            }}
-          >
-            Edit
-          </button>
-        )}
-        {comment.deletable && !comment.deleted && (
-          <button
-            className="link"
-            onClick={() => act(() => api.comments.destroy({ postId, path: comment.path }))}
-          >
-            Delete
-          </button>
-        )}
+      <div className="comment__body">
         {error && (
-          <span className="error" role="alert">
+          <div className="field-errors" role="alert">
             {error}
-          </span>
+          </div>
+        )}
+
+        {comment.deleted ? (
+          <div className="comment__bubble comment__bubble--deleted">[comment deleted]</div>
+        ) : editing ? (
+          <>
+            <textarea
+              className="comment-form__input"
+              aria-label="Edit comment"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+            />
+            <div className="composer__actions">
+              <button className="btn btn--ghost btn--sm" onClick={() => setEditing(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn--primary btn--sm"
+                onClick={() =>
+                  act(() => api.comments.update({ postId, path: comment.path, body: draft }))
+                }
+              >
+                Save
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="comment__bubble">
+            <div className="comment__author">{comment.author?.name}</div>
+            <div className="comment__text">
+              <p>{comment.body}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="comment__meta">
+          <span className="comment__time">{timeAgo(comment.createdAt)}</span>
+          {getUser() && !comment.deleted && (
+            <button className="comment__action" onClick={() => setReplying((r) => !r)}>
+              Reply
+            </button>
+          )}
+          {comment.editable && !comment.deleted && (
+            <button
+              className="comment__action"
+              onClick={() => {
+                setDraft(comment.body ?? "")
+                setEditing(true)
+              }}
+            >
+              Edit
+            </button>
+          )}
+          {comment.deletable && !comment.deleted && (
+            <button
+              className="comment__action comment__action--danger"
+              onClick={() => act(() => api.comments.destroy({ postId, path: comment.path }))}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+
+        <Reactions
+          postId={postId}
+          target={target}
+          counts={counts}
+          mine={mine[target] ?? null}
+          onChanged={(c) => setCounts(c)}
+        />
+
+        {replying && (
+          <div className="comment-form">
+            <textarea
+              className="comment-form__input"
+              data-testid="reply-box"
+              aria-label="Reply"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+            />
+            <div className="composer__actions">
+              <button
+                className="btn btn--primary btn--sm"
+                data-testid="submit-reply"
+                onClick={() =>
+                  act(() => api.comments.create({ postId, body: draft, parentPath: comment.path }))
+                }
+              >
+                Reply
+              </button>
+            </div>
+          </div>
         )}
       </div>
-
-      {replying && (
-        <div className="composer">
-          <textarea
-            data-testid="reply-box"
-            aria-label="Reply"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-          />
-          <button
-            data-testid="submit-reply"
-            onClick={() =>
-              act(() => api.comments.create({ postId, body: draft, parentPath: comment.path }))
-            }
-          >
-            Reply
-          </button>
-        </div>
-      )}
     </div>
   )
 }
@@ -170,25 +192,21 @@ export function PostView({ id, onBack }: { id: string; onBack: () => void }) {
     }
   }
 
-  if (missing) return <p className="muted">That post no longer exists.</p>
-  if (!post) return <p className="muted">Loading…</p>
+  if (missing) return <p className="empty">That post no longer exists.</p>
+  if (!post) return <p className="empty">Loading…</p>
 
   return (
-    <>
-      <button className="link" onClick={onBack}>
-        ← back
+    <div className="feed">
+      <button className="backlink" onClick={onBack}>
+        ← Back to feed
       </button>
 
-      <article className="card" data-testid="post">
-        <div className="byline">
-          {post.author.avatarUrl && <img className="avatar" src={post.author.avatarUrl} alt="" />}
-          <strong>{post.author.name}</strong>
-          <time>{new Date(post.createdAt).toLocaleString()}</time>
+      <article className="card post" data-testid="post">
+        <Byline post={post} />
+        <div className="post__body">
+          <p>{post.body}</p>
         </div>
-        <p>{post.body}</p>
-        {post.media?.map((m) => (
-          <img key={m.key} src={m.url} alt="" className="media" />
-        ))}
+        <Media post={post} />
         <Reactions
           postId={id}
           target="post"
@@ -196,33 +214,41 @@ export function PostView({ id, onBack }: { id: string; onBack: () => void }) {
           mine={mine["post"] ?? null}
           onChanged={(counts) => setPost({ ...post, reactionCounts: counts })}
         />
-        <p className="muted" data-testid="comment-count">
-          {thread.length} {thread.length === 1 ? "comment" : "comments"}
-        </p>
-      </article>
 
-      {getUser() && (
-        <div className="card composer">
-          <textarea
-            aria-label="Add a comment"
-            placeholder="Add a comment…"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-          />
-          <div className="row">
-            <button onClick={comment}>Comment</button>
-            {error && (
-              <span className="error" role="alert">
-                {error}
-              </span>
-            )}
+        <div className="post__foot">
+          <h2 className="thread__title" data-testid="comment-count">
+            {thread.length} {thread.length === 1 ? "comment" : "comments"}
+          </h2>
+
+          <div className="thread__list">
+            {thread.map((c) => (
+              <CommentNode key={c.path} comment={c} postId={id} mine={mine} onChanged={load} />
+            ))}
           </div>
-        </div>
-      )}
 
-      {thread.map((c) => (
-        <CommentNode key={c.path} comment={c} postId={id} mine={mine} onChanged={load} />
-      ))}
-    </>
+          {getUser() && (
+            <div className="comment-form">
+              {error && (
+                <div className="field-errors" role="alert">
+                  {error}
+                </div>
+              )}
+              <textarea
+                className="comment-form__input"
+                aria-label="Add a comment"
+                placeholder="Write a comment…"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+              />
+              <div className="composer__actions">
+                <button className="btn btn--primary btn--sm" onClick={comment}>
+                  Comment
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </article>
+    </div>
   )
 }

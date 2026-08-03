@@ -1,17 +1,36 @@
 import { useCallback, useEffect, useState } from "react"
-import { api } from "../api"
+import { api, getUser } from "../api"
 import type { Post } from "../api/schema"
 import { Composer, errorMessage } from "./Composer"
-import { getUser } from "../api"
+import { Avatar } from "./Avatar"
+import { Reactions } from "./Reactions"
+import { timeAgo } from "../time"
 
-function Media({ post }: { post: Post }) {
-  if (!post.media?.length) return null
+// The grid class encodes how many images there are, exactly as the Rails
+// partial did — one big, two side by side, three with a wide first.
+export function Media({ post }: { post: Post }) {
+  const items = post.media ?? []
+  if (!items.length) return null
   return (
-    <div className="media">
-      {post.media.map((m) => (
+    <div className={`media media--${Math.min(items.length, 4)}`}>
+      {items.map((m) => (
         // The server sends the URL; the client never builds one from a key.
-        <img key={m.key} src={m.url} alt="" width={m.width ?? undefined} height={m.height ?? undefined} />
+        <span key={m.key} className="media__item">
+          <img src={m.url} alt="" />
+        </span>
       ))}
+    </div>
+  )
+}
+
+export function Byline({ post }: { post: Pick<Post, "author" | "createdAt"> }) {
+  return (
+    <div className="post__head">
+      <Avatar name={post.author.name} url={post.author.avatarUrl} />
+      <div>
+        <div className="post__author">{post.author.name}</div>
+        <div className="post__time">{timeAgo(post.createdAt)}</div>
+      </div>
     </div>
   )
 }
@@ -27,11 +46,13 @@ function PostCard({
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(post.body ?? "")
+  const [counts, setCounts] = useState(post.reactionCounts ?? {})
   const [error, setError] = useState<string | null>(null)
 
-  async function save() {
+  async function act(fn: () => Promise<unknown>) {
+    setError(null)
     try {
-      await api.posts.update({ id: post.id, body: draft })
+      await fn()
       setEditing(false)
       onChanged()
     } catch (e) {
@@ -39,66 +60,77 @@ function PostCard({
     }
   }
 
-  async function destroy() {
-    try {
-      await api.posts.destroy({ id: post.id })
-      onChanged()
-    } catch (e) {
-      setError(errorMessage(e))
-    }
-  }
-
   return (
-    <article className="card" data-testid="post">
-      <div className="byline">
-        {post.author.avatarUrl && <img className="avatar" src={post.author.avatarUrl} alt="" />}
-        <strong>{post.author.name}</strong>
-        <time>{new Date(post.createdAt).toLocaleString()}</time>
-      </div>
+    <article className="card post" data-testid="post">
+      <Byline post={post} />
+
+      {error && (
+        <div className="field-errors" role="alert">
+          {error}
+        </div>
+      )}
 
       {editing ? (
-        <div className="composer">
-          <textarea aria-label="Edit post" value={draft} onChange={(e) => setDraft(e.target.value)} />
-          <div className="row">
-            <button onClick={save}>Save</button>
-            <button className="link" onClick={() => setEditing(false)}>
+        <>
+          <textarea
+            className="composer__input"
+            aria-label="Edit post"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+          />
+          <div className="composer__actions">
+            <button className="btn btn--ghost btn--sm" onClick={() => setEditing(false)}>
               Cancel
             </button>
+            <button
+              className="btn btn--primary btn--sm"
+              onClick={() => act(() => api.posts.update({ id: post.id, body: draft }))}
+            >
+              Save
+            </button>
           </div>
-        </div>
+        </>
       ) : (
         <>
-          <p>{post.body}</p>
+          <div className="post__body">
+            <p>{post.body}</p>
+          </div>
           <Media post={post} />
         </>
       )}
 
-      <div className="row">
-        {/* A test id rather than the label, which changes with the count. */}
-        <button className="link" data-testid="open-comments" onClick={() => onOpen(post.id)}>
-          {post.commentCount} {post.commentCount === 1 ? "comment" : "comments"}
-        </button>
-        <span className="muted">
-          {Object.entries(post.reactionCounts ?? {})
-            .map(([e, n]) => `${e}${n}`)
-            .join("  ")}
-        </span>
-        {/* Server-computed, so Ability is never reimplemented here. */}
-        {post.editable && !editing && (
-          <button className="link" onClick={() => setEditing(true)}>
-            Edit
+      {/* React straight from the feed. `mine` stays null here, as in the Rails
+          view — highlighting your own reaction is only computed on the post
+          page, so the feed remains a single query. */}
+      <Reactions
+        postId={post.id}
+        target="post"
+        counts={counts}
+        mine={null}
+        onChanged={(c) => setCounts(c)}
+        testId={`reactions-feed-${post.id}`}
+      />
+
+      <div className="post__foot">
+        <div className="owner-actions owner-actions--inline">
+          <button className="post__comments-link" data-testid="open-comments" onClick={() => onOpen(post.id)}>
+            {post.commentCount} {post.commentCount === 1 ? "comment" : "comments"}
           </button>
-        )}
-        {post.deletable && (
-          <button className="link" onClick={destroy}>
-            Delete
-          </button>
-        )}
-        {error && (
-          <span className="error" role="alert">
-            {error}
-          </span>
-        )}
+          {/* Server-computed, so Ability is never reimplemented here. */}
+          {post.editable && !editing && (
+            <button className="owner-actions__link" onClick={() => setEditing(true)}>
+              Edit
+            </button>
+          )}
+          {post.deletable && (
+            <button
+              className="owner-actions__link owner-actions__link--danger"
+              onClick={() => act(() => api.posts.destroy({ id: post.id }))}
+            >
+              Delete
+            </button>
+          )}
+        </div>
       </div>
     </article>
   )
@@ -130,18 +162,24 @@ export function Feed({ onOpen }: { onOpen: (id: string) => void }) {
   }
 
   return (
-    <>
-      {getUser() ? <Composer onPosted={load} /> : <p className="muted">Sign in to post.</p>}
-      {loading && <p className="muted">Loading…</p>}
-      {!loading && posts.length === 0 && <p className="muted">Nothing here yet.</p>}
+    <div className="feed">
+      {getUser() ? (
+        <Composer onPosted={load} />
+      ) : (
+        <div className="card">
+          <p className="muted">Sign in to post.</p>
+        </div>
+      )}
+      {loading && <p className="empty">Loading…</p>}
+      {!loading && posts.length === 0 && <p className="empty">Nothing here yet.</p>}
       {posts.map((p) => (
         <PostCard key={p.id} post={p} onOpen={onOpen} onChanged={load} />
       ))}
       {cursor && (
-        <button className="link" onClick={more}>
+        <button className="btn btn--ghost" onClick={more}>
           Load more
         </button>
       )}
-    </>
+    </div>
   )
 }

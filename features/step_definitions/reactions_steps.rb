@@ -16,6 +16,6 @@ end
 # drops to nothing rather than to zero, so the bar shows no numbers at all.
 Then("the post has no reaction counts") do
   within("[data-testid='reactions-post']") do
-    expect(page).to have_no_css(".count")
+    expect(page).to have_no_css(".reactions__count")
   end
 end
