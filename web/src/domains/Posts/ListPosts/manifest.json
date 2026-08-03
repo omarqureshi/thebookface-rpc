@@ -1,0 +1,105 @@
+{
+  "scoped_path": [
+    "ListPosts"
+  ],
+  "scoped_name": "ListPosts",
+  "scoped_short_name": "ListPosts",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Posts",
+    "ListPosts"
+  ],
+  "scoped_full_name": "Posts::ListPosts",
+  "scoped_category": "command",
+  "reference": "Posts::ListPosts",
+  "domain": "Posts",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Posts"
+  ],
+  "types_depended_on": [
+    "Posts::PostModel",
+    "Posts::PostPage",
+    "array",
+    "attributes",
+    "duck",
+    "integer",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "inputs_types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "integer",
+    "string",
+    "symbol"
+  ],
+  "result_types_depended_on": [
+    "Posts::PostModel",
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "errors_types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "symbol"
+  ],
+  "possible_errors": {
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.cursor.cannot_cast": {
+      "path": [
+        "cursor"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cursor.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.limit.cannot_cast": {
+      "path": [
+        "limit"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.limit.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    }
+  },
+  "inputs_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "limit": "integer",
+      "cursor": "string"
+    },
+    "defaults": {
+      "limit": 25
+    }
+  },
+  "description": "The feed, newest first.",
+  "result_type": "Posts::PostPage",
+  "serializers": [
+    "Foobara::CommandConnectors::Serializers::ErrorsSerializer",
+    "Foobara::CommandConnectors::Serializers::AtomicSerializer",
+    "Foobara::CommandConnectors::Serializers::JsonSerializer"
+  ],
+  "requires_authentication": false
+}

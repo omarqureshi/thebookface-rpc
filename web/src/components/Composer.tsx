@@ -2,7 +2,7 @@ import { useRef, useState } from "react"
 import { api, RpcError, getUser } from "../api"
 import { uploadImage } from "../upload"
 import { Avatar } from "./Avatar"
-import type { UploadedMedia } from "../api/schema"
+import type { UploadedMedia } from "../api/types"
 
 // Turns a typed contract error into something a person can read. Errors are a
 // discriminated union in the generated types, so this is exhaustive by

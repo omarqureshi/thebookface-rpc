@@ -1,0 +1,27 @@
+{
+  "scoped_path": [
+    "Uploads"
+  ],
+  "scoped_short_name": "Uploads",
+  "types": [
+    "Uploads::FormField",
+    "Uploads::PresignedUpload"
+  ],
+  "commands": [
+    "Uploads::Presign"
+  ],
+  "domain": "Uploads",
+  "organization": "global_organization",
+  "parent": [
+    "organization",
+    "global_organization"
+  ],
+  "reference": "Uploads",
+  "scoped_category": "domain",
+  "scoped_full_name": "Uploads",
+  "scoped_full_path": [
+    "Uploads"
+  ],
+  "scoped_name": "Uploads",
+  "scoped_prefix": null
+}

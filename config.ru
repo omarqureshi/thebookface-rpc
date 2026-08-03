@@ -10,6 +10,45 @@
 
 require_relative "config/boot"
 require "foobara/rack_connector"
+require "fileutils"
+
+# Dev-only object store, carried over from the Prospect branch unchanged: the
+# image flow works end to end without S3 or LocalStack. MediaStorage#presigned_upload
+# points the browser here; the bytes land on disk and are served back. Deployed,
+# both are S3 and none of this exists.
+MEDIA_DIR = File.expand_path("tmp/media", __dir__)
+FileUtils.mkdir_p(MEDIA_DIR)
+
+DEV_MEDIA = lambda do |env|
+  req = Rack::Request.new(env)
+  # path_info, not path: under `map` the latter still carries "/media". And
+  # unescaped, because a persona sub contains "|", which the browser percent-
+  # encodes — so the stored filename would never match.
+  key = Rack::Utils.unescape(req.path_info).sub(%r{\A/}, "")
+
+  case req.request_method
+  when "POST"
+    # Mimics a presigned S3 POST: the key travels in the form, not the path.
+    key = req.params["key"].to_s
+    next [400, {}, ["missing key"]] if key.empty?
+
+    file = req.params["file"]
+    bytes = file.respond_to?(:[]) ? file[:tempfile].read : file.to_s
+    File.binwrite(File.join(MEDIA_DIR, key.tr("/", "_")), bytes)
+    [204, { "access-control-allow-origin" => "*" }, []]
+  when "GET"
+    path = File.join(MEDIA_DIR, key.tr("/", "_"))
+    next [404, {}, ["not found"]] unless File.exist?(path)
+
+    [200, { "content-type" => "image/jpeg" }, [File.binread(path)]]
+  when "OPTIONS"
+    [204, { "access-control-allow-origin" => "*",
+            "access-control-allow-headers" => "*",
+            "access-control-allow-methods" => "POST, GET, OPTIONS" }, []]
+  else
+    [405, {}, []]
+  end
+end
 
 # Local personas, as on the Prospect branch: no Cognito, so identity is a
 # header. The authenticator returns whatever object the app wants as its
@@ -35,8 +74,7 @@ class ExtractViewer
 
   def call(env)
     sub = env["HTTP_X_DEV_SUB"]
-    Thread.current[:bookface_viewer] =
-      sub && Viewer.new(sub, env["HTTP_X_DEV_NAME"] || sub)
+    Thread.current[:bookface_viewer] = BookfaceAuth.viewer_from(env)
     @app.call(env)
   ensure
     Thread.current[:bookface_viewer] = nil
@@ -46,14 +84,30 @@ end
 # The authenticator is the gate for requires_authentication commands; the
 # middleware above supplies identity to public ones, which the connector never
 # authenticates. Both read the same headers.
-def viewer_from(env)
-  sub = env["HTTP_X_DEV_SUB"]
-  sub && Viewer.new(sub, env["HTTP_X_DEV_NAME"] || sub)
+# A module, not a top-level def: config.ru is instance_eval'd by Rack::Builder,
+# so a bare `def` lands on the Builder and is invisible to the authenticator,
+# which is instance_exec'd against the request.
+module BookfaceAuth
+  def self.viewer_from(env)
+    # Headers for curl and for cucumber steps that call commands directly; a
+    # cookie for the browser, because the generated SDK sends
+    # credentials: "include" but offers no hook for custom headers.
+    sub  = env["HTTP_X_DEV_SUB"]
+    name = env["HTTP_X_DEV_NAME"]
+
+    unless sub
+      cookies = Rack::Utils.parse_cookies(env)
+      sub  = cookies["dev_sub"]
+      name = cookies["dev_name"]
+    end
+
+    sub && Viewer.new(sub, name || sub)
+  end
 end
 
 connector = Foobara::CommandConnectors::Http::Rack.new(
   # instance_exec'd against the request: no argument, `self` is the request.
-  authenticator: -> { viewer_from(env) }
+  authenticator: -> { BookfaceAuth.viewer_from(env) }
 )
 
 # One line per deployment unit. Locally every domain is connected to one
@@ -76,4 +130,11 @@ PUBLIC_COMMANDS = [
 end
 
 use ExtractViewer
-run connector
+
+# /up is served here rather than by the connector: Prospect::RackApp provided
+# one, and the dev and cucumber scripts poll it to know the server is ready.
+run(Rack::Builder.app do
+  map("/media") { run DEV_MEDIA }
+  map("/up") { run ->(_env) { [200, { "content-type" => "text/plain" }, ["ok"]] } }
+  run connector
+end)

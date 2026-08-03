@@ -8,11 +8,15 @@ module Reactions
   class ReactionState < Foobara::Model
     attributes do
       target :string, :required
-      reaction_counts :associative_array,
-                      key_type_declaration: :string,
-                      value_type_declaration: :integer,
-                      default: {}
+      reaction_counts [Shared::ReactionCount], default: []
       mine :string
+    end
+  end
+
+  class MyReaction < Foobara::Model
+    attributes do
+      target :string, :required
+      emoji :string, :required
     end
   end
 
@@ -24,13 +28,14 @@ module Reactions
     # Public but viewer-dependent — the case Foobara's connector cannot
     # authenticate for, since it only authenticates commands that require it.
     # See config.ru.
-    result :associative_array, key_type_declaration: :string, value_type_declaration: :string
+    # Also flattened for the generator: target => emoji becomes a list.
+    result [MyReaction]
 
     def execute
       viewer = Shared::Viewer.current
       return {} unless viewer
 
-      Reaction.mine_for_post(post_id, viewer.sub)
+      Reaction.mine_for_post(post_id, viewer.sub).map { |target, emoji| { target:, emoji: } }
     end
   end
 
@@ -61,7 +66,7 @@ module Reactions
                   Comment.find(post.id, range_key: target.delete_prefix("comment#"))
                 end
 
-      { target:, reaction_counts: subject.reaction_counts }.tap do |h|
+      { target:, reaction_counts: Shared::Present.reaction_counts(subject) }.tap do |h|
         mine = Reaction.mine_for_post(post.id, viewer.sub)[target]
         h[:mine] = mine if mine
       end

@@ -1,0 +1,125 @@
+{
+  "scoped_path": [
+    "FormField"
+  ],
+  "scoped_name": "FormField",
+  "scoped_short_name": "FormField",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Uploads",
+    "FormField"
+  ],
+  "scoped_full_name": "Uploads::FormField",
+  "scoped_category": "type",
+  "reference": "Uploads::FormField",
+  "domain": "Uploads",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Uploads"
+  ],
+  "declaration_data": {
+    "type": "model",
+    "name": "FormField",
+    "model_module": "Uploads",
+    "model_class": "Uploads::FormField",
+    "model_base_class": "Foobara::Model",
+    "attributes_declaration": {
+      "type": "attributes",
+      "element_type_declarations": {
+        "name": "string",
+        "value": "string"
+      },
+      "required": [
+        "name",
+        "value"
+      ]
+    }
+  },
+  "possible_errors": {
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.missing_required_attribute": {
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.name.cannot_cast": {
+      "path": [
+        "name"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.name.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.name.missing_required_attribute": {
+      "path": [
+        "name"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.name.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "data.value.cannot_cast": {
+      "path": [
+        "value"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.value.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.value.missing_required_attribute": {
+      "path": [
+        "value"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.value.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    }
+  },
+  "name": "FormField",
+  "target_classes": [
+    "Uploads::FormField"
+  ],
+  "types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "description": null,
+  "base_type": "model",
+  "attributes_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "name": "string",
+      "value": "string"
+    },
+    "required": [
+      "name",
+      "value"
+    ]
+  },
+  "organization_name": "global_organization",
+  "domain_name": "Uploads",
+  "model_name": "FormField",
+  "model_base_class": "Foobara::Model",
+  "model_class": "Uploads::FormField"
+}

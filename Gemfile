@@ -5,6 +5,9 @@ source "https://rubygems.org"
 # that clients and (we hope) packaging are both driven from.
 gem "foobara"
 gem "foobara-rack-connector"
+# Foobara's own TypeScript SDK generator — the counterpart to Prospect's
+# emitter, and the honest comparison for the client half.
+gem "foobara-typescript-remote-command-generator", group: :development
 
 gem "dynamoid", "~> 3.10"
 gem "aws-sdk-dynamodb", "~> 1"

@@ -13,10 +13,7 @@ module Comments
       body :string
       author Shared::Author
       deleted :boolean, default: false
-      reaction_counts :associative_array,
-                      key_type_declaration: :string,
-                      value_type_declaration: :integer,
-                      default: {}
+      reaction_counts [Shared::ReactionCount], default: []
       created_at :string, :required
       editable :boolean, default: false
       deletable :boolean, default: false
@@ -32,7 +29,7 @@ module Comments
         path: record.path,
         depth: record.depth,
         deleted: record.deleted?,
-        reaction_counts: record.reaction_counts,
+        reaction_counts: Shared::Present.reaction_counts(record),
         created_at: Shared::Present.timestamp(record.created_at),
         editable: ability.can?(:update, record),
         deletable: ability.can?(:destroy, record)

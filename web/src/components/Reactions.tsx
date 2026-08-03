@@ -18,21 +18,23 @@ export function Reactions({
 }: {
   postId: string
   target: string
-  counts: Record<string, number>
+  counts: Array<{ emoji: string; count: number }> | any
   mine: string | null
-  onChanged: (counts: Record<string, number>, mine: string | null) => void
+  onChanged: (counts: Array<{ emoji: string; count: number }> | any, mine: string | null) => void
   testId?: string
 }) {
   const [busy, setBusy] = useState(false)
   const signedIn = !!getUser()
-  const shown = Object.entries(counts).filter(([, n]) => n > 0)
+  // A list of pairs rather than a map: Foobara's TS generator cannot emit an
+  // associative_array, so the contract carries pairs. See FOOBARA.md.
+  const shown = ((counts ?? []) as Array<{ emoji: string; count: number }>).filter((c) => c.count > 0)
 
   async function toggle(emoji: string) {
     if (!signedIn || busy) return
     setBusy(true)
     try {
       const state = await api.reactions.toggle({ postId, target, emoji })
-      onChanged(state.reactionCounts ?? {}, state.mine ?? null)
+      onChanged(state.reaction_counts ?? [], state.mine ?? null)
     } finally {
       setBusy(false)
     }
@@ -42,9 +44,9 @@ export function Reactions({
     <div className="reactions" data-testid={testId ?? `reactions-${target}`}>
       {shown.length > 0 && (
         <div className="reactions__counts">
-          {shown.map(([emoji, n]) => (
-            <span key={emoji} className="reactions__count">
-              {emoji} {n}
+          {shown.map((c) => (
+            <span key={c.emoji} className="reactions__count">
+              {c.emoji} {c.count}
             </span>
           ))}
         </div>

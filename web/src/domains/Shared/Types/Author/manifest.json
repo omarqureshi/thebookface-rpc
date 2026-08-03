@@ -1,0 +1,114 @@
+{
+  "scoped_path": [
+    "Author"
+  ],
+  "scoped_name": "Author",
+  "scoped_short_name": "Author",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Shared",
+    "Author"
+  ],
+  "scoped_full_name": "Shared::Author",
+  "scoped_category": "type",
+  "reference": "Shared::Author",
+  "domain": "Shared",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Shared"
+  ],
+  "declaration_data": {
+    "type": "model",
+    "name": "Author",
+    "model_module": "Shared",
+    "model_class": "Shared::Author",
+    "model_base_class": "Foobara::Model",
+    "attributes_declaration": {
+      "type": "attributes",
+      "element_type_declarations": {
+        "name": "string",
+        "avatar_url": "string"
+      },
+      "required": [
+        "name"
+      ]
+    }
+  },
+  "possible_errors": {
+    "data.avatar_url.cannot_cast": {
+      "path": [
+        "avatar_url"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.avatar_url.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.missing_required_attribute": {
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.name.cannot_cast": {
+      "path": [
+        "name"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.name.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.name.missing_required_attribute": {
+      "path": [
+        "name"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.name.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    }
+  },
+  "name": "Author",
+  "target_classes": [
+    "Shared::Author"
+  ],
+  "types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "description": null,
+  "base_type": "model",
+  "attributes_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "name": "string",
+      "avatar_url": "string"
+    },
+    "required": [
+      "name"
+    ]
+  },
+  "organization_name": "global_organization",
+  "domain_name": "Shared",
+  "model_name": "Author",
+  "model_base_class": "Foobara::Model",
+  "model_class": "Shared::Author"
+}

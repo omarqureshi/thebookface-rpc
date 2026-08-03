@@ -16,8 +16,8 @@ const PERSONAS: DevUser[] = [
 export default function App() {
   const [route, navigate] = useRoute()
   const [, force] = useState(0)
-  const [shownName, setShownName] = useState<string | null>(null)
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [shown_name, setShownName] = useState<string | null>(null)
+  const [avatar_url, setAvatarUrl] = useState<string | null>(null)
   const me = getUser()
 
   // The name to greet you by is the profile's, not the persona's — otherwise
@@ -29,8 +29,8 @@ export default function App() {
       return
     }
     api.profiles.get({}).then((p) => {
-      setShownName(p.shownName)
-      setAvatarUrl(p.avatarUrl ?? null)
+      setShownName(p.shown_name)
+      setAvatarUrl(p.avatar_url ?? null)
     })
   }, [])
 
@@ -61,9 +61,9 @@ export default function App() {
                 aria-label="My profile"
                 onClick={() => navigate({ name: "profile" })}
               >
-                <Avatar name={shownName ?? me.name} url={avatarUrl} size="avatar--sm" />
+                <Avatar name={shown_name ?? me.name} url={avatar_url} size="avatar--sm" />
                 <span className="topbar__name" data-testid="signed-in">
-                  Signed in as {shownName ?? me.name}
+                  Signed in as {shown_name ?? me.name}
                 </span>
               </button>
               <button className="btn btn--ghost btn--sm" onClick={() => signIn(null)}>

@@ -1,0 +1,28 @@
+{
+  "scoped_path": [
+    "Reactions"
+  ],
+  "scoped_short_name": "Reactions",
+  "types": [
+    "Reactions::MyReaction",
+    "Reactions::ReactionState"
+  ],
+  "commands": [
+    "Reactions::MyReactions",
+    "Reactions::ToggleReaction"
+  ],
+  "domain": "Reactions",
+  "organization": "global_organization",
+  "parent": [
+    "organization",
+    "global_organization"
+  ],
+  "reference": "Reactions",
+  "scoped_category": "domain",
+  "scoped_full_name": "Reactions",
+  "scoped_full_path": [
+    "Reactions"
+  ],
+  "scoped_name": "Reactions",
+  "scoped_prefix": null
+}

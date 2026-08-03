@@ -1,0 +1,20 @@
+{
+  "scoped_path": [],
+  "scoped_name": null,
+  "scoped_short_name": null,
+  "scoped_prefix": [],
+  "scoped_full_path": [],
+  "scoped_full_name": "",
+  "scoped_category": "organization",
+  "reference": "global_organization",
+  "domain": "global_organization::global_domain",
+  "organization": "global_organization",
+  "domains": [
+    "Comments",
+    "Posts",
+    "Profiles",
+    "Reactions",
+    "Uploads",
+    "global_organization::global_domain"
+  ]
+}

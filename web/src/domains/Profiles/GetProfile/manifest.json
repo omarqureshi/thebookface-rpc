@@ -1,0 +1,66 @@
+{
+  "scoped_path": [
+    "GetProfile"
+  ],
+  "scoped_name": "GetProfile",
+  "scoped_short_name": "GetProfile",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Profiles",
+    "GetProfile"
+  ],
+  "scoped_full_name": "Profiles::GetProfile",
+  "scoped_category": "command",
+  "reference": "Profiles::GetProfile",
+  "domain": "Profiles",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Profiles"
+  ],
+  "types_depended_on": [
+    "Profiles::ProfileModel",
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "result_types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "inputs_type": {
+    "type": "attributes",
+    "element_type_declarations": {}
+  },
+  "description": null,
+  "result_type": "Profiles::ProfileModel",
+  "inputs_types_depended_on": [],
+  "possible_errors": {
+    "runtime.unauthenticated": {
+      "category": "runtime",
+      "symbol": "unauthenticated",
+      "key": "runtime.unauthenticated",
+      "error": "Foobara::CommandConnector::UnauthenticatedError"
+    }
+  },
+  "errors_transformers": [
+    "Foobara::CommandConnectors::Transformers::AuthErrorsTransformer"
+  ],
+  "serializers": [
+    "Foobara::CommandConnectors::Serializers::ErrorsSerializer",
+    "Foobara::CommandConnectors::Serializers::AtomicSerializer",
+    "Foobara::CommandConnectors::Serializers::JsonSerializer"
+  ],
+  "requires_authentication": true,
+  "authenticator": {
+    "symbol": "authenticator",
+    "explanation": "authenticator"
+  }
+}

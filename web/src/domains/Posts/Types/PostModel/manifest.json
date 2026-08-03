@@ -1,0 +1,484 @@
+{
+  "scoped_path": [
+    "PostModel"
+  ],
+  "scoped_name": "PostModel",
+  "scoped_short_name": "PostModel",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Posts",
+    "PostModel"
+  ],
+  "scoped_full_name": "Posts::PostModel",
+  "scoped_category": "type",
+  "reference": "Posts::PostModel",
+  "domain": "Posts",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Posts"
+  ],
+  "declaration_data": {
+    "type": "model",
+    "name": "PostModel",
+    "model_module": "Posts",
+    "model_class": "Posts::PostModel",
+    "model_base_class": "Foobara::Model",
+    "attributes_declaration": {
+      "type": "attributes",
+      "element_type_declarations": {
+        "id": "string",
+        "body": "string",
+        "author": "Shared::Author",
+        "media": {
+          "type": "array",
+          "element_type_declaration": "Shared::MediaItem"
+        },
+        "reaction_counts": {
+          "type": "array",
+          "element_type_declaration": "Shared::ReactionCount"
+        },
+        "comment_count": "integer",
+        "created_at": "string",
+        "editable": "boolean",
+        "deletable": "boolean"
+      },
+      "required": [
+        "author",
+        "comment_count",
+        "created_at",
+        "id"
+      ],
+      "defaults": {
+        "media": [],
+        "reaction_counts": [],
+        "editable": false,
+        "deletable": false
+      }
+    }
+  },
+  "possible_errors": {
+    "data.author.avatar_url.cannot_cast": {
+      "path": [
+        "author",
+        "avatar_url"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.author.avatar_url.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.author.cannot_cast": {
+      "path": [
+        "author"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.author.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.author.missing_required_attribute": {
+      "path": [
+        "author"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.author.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.author.name.cannot_cast": {
+      "path": [
+        "author",
+        "name"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.author.name.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.author.name.missing_required_attribute": {
+      "path": [
+        "author",
+        "name"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.author.name.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.author.unexpected_attributes": {
+      "path": [
+        "author"
+      ],
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.author.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "data.body.cannot_cast": {
+      "path": [
+        "body"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.body.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.comment_count.cannot_cast": {
+      "path": [
+        "comment_count"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.comment_count.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.comment_count.missing_required_attribute": {
+      "path": [
+        "comment_count"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.comment_count.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.created_at.cannot_cast": {
+      "path": [
+        "created_at"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.created_at.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.created_at.missing_required_attribute": {
+      "path": [
+        "created_at"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.created_at.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.deletable.cannot_cast": {
+      "path": [
+        "deletable"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.deletable.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.editable.cannot_cast": {
+      "path": [
+        "editable"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.editable.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.id.cannot_cast": {
+      "path": [
+        "id"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.id.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.id.missing_required_attribute": {
+      "path": [
+        "id"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.id.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.media.#.cannot_cast": {
+      "path": [
+        "media",
+        "#"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.media.#.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.media.#.content_type.cannot_cast": {
+      "path": [
+        "media",
+        "#",
+        "content_type"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.media.#.content_type.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.media.#.content_type.missing_required_attribute": {
+      "path": [
+        "media",
+        "#",
+        "content_type"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.media.#.content_type.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.media.#.height.cannot_cast": {
+      "path": [
+        "media",
+        "#",
+        "height"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.media.#.height.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.media.#.key.cannot_cast": {
+      "path": [
+        "media",
+        "#",
+        "key"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.media.#.key.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.media.#.key.missing_required_attribute": {
+      "path": [
+        "media",
+        "#",
+        "key"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.media.#.key.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.media.#.missing_required_attribute": {
+      "path": [
+        "media",
+        "#"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.media.#.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.media.#.unexpected_attributes": {
+      "path": [
+        "media",
+        "#"
+      ],
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.media.#.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "data.media.#.url.cannot_cast": {
+      "path": [
+        "media",
+        "#",
+        "url"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.media.#.url.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.media.#.url.missing_required_attribute": {
+      "path": [
+        "media",
+        "#",
+        "url"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.media.#.url.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.media.#.width.cannot_cast": {
+      "path": [
+        "media",
+        "#",
+        "width"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.media.#.width.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.media.cannot_cast": {
+      "path": [
+        "media"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.media.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.missing_required_attribute": {
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.reaction_counts.#.cannot_cast": {
+      "path": [
+        "reaction_counts",
+        "#"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.reaction_counts.#.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.reaction_counts.#.count.cannot_cast": {
+      "path": [
+        "reaction_counts",
+        "#",
+        "count"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.reaction_counts.#.count.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.reaction_counts.#.count.missing_required_attribute": {
+      "path": [
+        "reaction_counts",
+        "#",
+        "count"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.reaction_counts.#.count.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.reaction_counts.#.emoji.cannot_cast": {
+      "path": [
+        "reaction_counts",
+        "#",
+        "emoji"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.reaction_counts.#.emoji.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.reaction_counts.#.emoji.missing_required_attribute": {
+      "path": [
+        "reaction_counts",
+        "#",
+        "emoji"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.reaction_counts.#.emoji.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.reaction_counts.#.missing_required_attribute": {
+      "path": [
+        "reaction_counts",
+        "#"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.reaction_counts.#.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.reaction_counts.#.unexpected_attributes": {
+      "path": [
+        "reaction_counts",
+        "#"
+      ],
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.reaction_counts.#.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "data.reaction_counts.cannot_cast": {
+      "path": [
+        "reaction_counts"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.reaction_counts.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    }
+  },
+  "name": "PostModel",
+  "target_classes": [
+    "Posts::PostModel"
+  ],
+  "types_depended_on": [
+    "Shared::Author",
+    "Shared::MediaItem",
+    "Shared::ReactionCount",
+    "array",
+    "attributes",
+    "boolean",
+    "duck",
+    "integer",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "description": null,
+  "base_type": "model",
+  "attributes_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "id": "string",
+      "body": "string",
+      "author": "Shared::Author",
+      "media": {
+        "type": "array",
+        "element_type_declaration": "Shared::MediaItem"
+      },
+      "reaction_counts": {
+        "type": "array",
+        "element_type_declaration": "Shared::ReactionCount"
+      },
+      "comment_count": "integer",
+      "created_at": "string",
+      "editable": "boolean",
+      "deletable": "boolean"
+    },
+    "required": [
+      "author",
+      "comment_count",
+      "created_at",
+      "id"
+    ],
+    "defaults": {
+      "media": [],
+      "reaction_counts": [],
+      "editable": false,
+      "deletable": false
+    }
+  },
+  "organization_name": "global_organization",
+  "domain_name": "Posts",
+  "model_name": "PostModel",
+  "model_base_class": "Foobara::Model",
+  "model_class": "Posts::PostModel"
+}

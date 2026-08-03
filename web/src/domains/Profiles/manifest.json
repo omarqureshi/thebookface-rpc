@@ -1,0 +1,27 @@
+{
+  "scoped_path": [
+    "Profiles"
+  ],
+  "scoped_short_name": "Profiles",
+  "types": [
+    "Profiles::ProfileModel"
+  ],
+  "commands": [
+    "Profiles::GetProfile",
+    "Profiles::UpdateProfile"
+  ],
+  "domain": "Profiles",
+  "organization": "global_organization",
+  "parent": [
+    "organization",
+    "global_organization"
+  ],
+  "reference": "Profiles",
+  "scoped_category": "domain",
+  "scoped_full_name": "Profiles",
+  "scoped_full_path": [
+    "Profiles"
+  ],
+  "scoped_name": "Profiles",
+  "scoped_prefix": null
+}

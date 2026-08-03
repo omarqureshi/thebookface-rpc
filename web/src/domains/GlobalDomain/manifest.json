@@ -1,0 +1,31 @@
+{
+  "scoped_path": [],
+  "scoped_short_name": null,
+  "types": [
+    "array",
+    "associative_array",
+    "atomic_duck",
+    "attributes",
+    "boolean",
+    "duck",
+    "duckture",
+    "integer",
+    "model",
+    "number",
+    "string",
+    "symbol"
+  ],
+  "commands": [],
+  "domain": "global_organization::global_domain",
+  "organization": "global_organization",
+  "parent": [
+    "organization",
+    "global_organization"
+  ],
+  "reference": "global_organization::global_domain",
+  "scoped_category": "domain",
+  "scoped_full_name": "",
+  "scoped_full_path": [],
+  "scoped_name": null,
+  "scoped_prefix": []
+}

@@ -26,14 +26,9 @@ end
 # this, because the UI cannot produce such a key; it is a server rule, so the
 # step exercises the procedure directly.
 When("I try to set my avatar to someone else's key") do
-  ctx = Bookface::Context.new(
-    viewer: Bookface::Viewer.new(sub: persona_sub(@me), email: nil, name: @me)
-  )
-  dispatcher = Prospect::Dispatcher.new(Bookface::AppRouter)
-  @response = dispatcher.call(
-    "profiles.update",
-    { "display_name" => @me, "bio" => "", "avatar_key" => "u/dev|grace/not-mine.jpg" },
-    ctx
+  @response = run_command(
+    "Profiles/UpdateProfile",
+    { "display_name" => @me, "bio" => "", "avatar_key" => "u/dev|grace/not-mine.jpg" }
   )
 end
 

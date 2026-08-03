@@ -1,0 +1,357 @@
+{
+  "scoped_path": [
+    "CommentModel"
+  ],
+  "scoped_name": "CommentModel",
+  "scoped_short_name": "CommentModel",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Comments",
+    "CommentModel"
+  ],
+  "scoped_full_name": "Comments::CommentModel",
+  "scoped_category": "type",
+  "reference": "Comments::CommentModel",
+  "domain": "Comments",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Comments"
+  ],
+  "declaration_data": {
+    "type": "model",
+    "name": "CommentModel",
+    "model_module": "Comments",
+    "model_class": "Comments::CommentModel",
+    "model_base_class": "Foobara::Model",
+    "attributes_declaration": {
+      "type": "attributes",
+      "element_type_declarations": {
+        "path": "string",
+        "depth": "integer",
+        "body": "string",
+        "author": "Shared::Author",
+        "deleted": "boolean",
+        "reaction_counts": {
+          "type": "array",
+          "element_type_declaration": "Shared::ReactionCount"
+        },
+        "created_at": "string",
+        "editable": "boolean",
+        "deletable": "boolean"
+      },
+      "required": [
+        "created_at",
+        "depth",
+        "path"
+      ],
+      "defaults": {
+        "deleted": false,
+        "reaction_counts": [],
+        "editable": false,
+        "deletable": false
+      }
+    }
+  },
+  "possible_errors": {
+    "data.author.avatar_url.cannot_cast": {
+      "path": [
+        "author",
+        "avatar_url"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.author.avatar_url.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.author.cannot_cast": {
+      "path": [
+        "author"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.author.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.author.missing_required_attribute": {
+      "path": [
+        "author"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.author.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.author.name.cannot_cast": {
+      "path": [
+        "author",
+        "name"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.author.name.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.author.name.missing_required_attribute": {
+      "path": [
+        "author",
+        "name"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.author.name.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.author.unexpected_attributes": {
+      "path": [
+        "author"
+      ],
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.author.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "data.body.cannot_cast": {
+      "path": [
+        "body"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.body.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.created_at.cannot_cast": {
+      "path": [
+        "created_at"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.created_at.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.created_at.missing_required_attribute": {
+      "path": [
+        "created_at"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.created_at.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.deletable.cannot_cast": {
+      "path": [
+        "deletable"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.deletable.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.deleted.cannot_cast": {
+      "path": [
+        "deleted"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.deleted.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.depth.cannot_cast": {
+      "path": [
+        "depth"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.depth.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.depth.missing_required_attribute": {
+      "path": [
+        "depth"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.depth.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.editable.cannot_cast": {
+      "path": [
+        "editable"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.editable.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.missing_required_attribute": {
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.path.cannot_cast": {
+      "path": [
+        "path"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.path.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.path.missing_required_attribute": {
+      "path": [
+        "path"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.path.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.reaction_counts.#.cannot_cast": {
+      "path": [
+        "reaction_counts",
+        "#"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.reaction_counts.#.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.reaction_counts.#.count.cannot_cast": {
+      "path": [
+        "reaction_counts",
+        "#",
+        "count"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.reaction_counts.#.count.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.reaction_counts.#.count.missing_required_attribute": {
+      "path": [
+        "reaction_counts",
+        "#",
+        "count"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.reaction_counts.#.count.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.reaction_counts.#.emoji.cannot_cast": {
+      "path": [
+        "reaction_counts",
+        "#",
+        "emoji"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.reaction_counts.#.emoji.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.reaction_counts.#.emoji.missing_required_attribute": {
+      "path": [
+        "reaction_counts",
+        "#",
+        "emoji"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.reaction_counts.#.emoji.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.reaction_counts.#.missing_required_attribute": {
+      "path": [
+        "reaction_counts",
+        "#"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.reaction_counts.#.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.reaction_counts.#.unexpected_attributes": {
+      "path": [
+        "reaction_counts",
+        "#"
+      ],
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.reaction_counts.#.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "data.reaction_counts.cannot_cast": {
+      "path": [
+        "reaction_counts"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.reaction_counts.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    }
+  },
+  "name": "CommentModel",
+  "target_classes": [
+    "Comments::CommentModel"
+  ],
+  "types_depended_on": [
+    "Shared::Author",
+    "Shared::ReactionCount",
+    "array",
+    "attributes",
+    "boolean",
+    "duck",
+    "integer",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "description": null,
+  "base_type": "model",
+  "attributes_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "path": "string",
+      "depth": "integer",
+      "body": "string",
+      "author": "Shared::Author",
+      "deleted": "boolean",
+      "reaction_counts": {
+        "type": "array",
+        "element_type_declaration": "Shared::ReactionCount"
+      },
+      "created_at": "string",
+      "editable": "boolean",
+      "deletable": "boolean"
+    },
+    "required": [
+      "created_at",
+      "depth",
+      "path"
+    ],
+    "defaults": {
+      "deleted": false,
+      "reaction_counts": [],
+      "editable": false,
+      "deletable": false
+    }
+  },
+  "organization_name": "global_organization",
+  "domain_name": "Comments",
+  "model_name": "CommentModel",
+  "model_base_class": "Foobara::Model",
+  "model_class": "Comments::CommentModel"
+}

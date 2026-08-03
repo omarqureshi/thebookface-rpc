@@ -4,12 +4,7 @@
 # the scenario is about what the server hands back, not about the file picker.
 
 When("I request an upload for {string}") do |content_type|
-  ctx = Bookface::Context.new(
-    viewer: Bookface::Viewer.new(sub: persona_sub(@me), email: nil, name: @me)
-  )
-  _, body = Prospect::Dispatcher.new(Bookface::AppRouter)
-                                .call("uploads.presign", { "content_type" => content_type }, ctx)
-  @presigned = body["result"]
+  _, @presigned = run_command("Uploads/Presign", { "content_type" => content_type })
 end
 
 Then("I receive a presigned upload target") do

@@ -1,0 +1,128 @@
+{
+  "scoped_path": [
+    "Presign"
+  ],
+  "scoped_name": "Presign",
+  "scoped_short_name": "Presign",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Uploads",
+    "Presign"
+  ],
+  "scoped_full_name": "Uploads::Presign",
+  "scoped_category": "command",
+  "reference": "Uploads::Presign",
+  "domain": "Uploads",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Uploads"
+  ],
+  "types_depended_on": [
+    "Uploads::FormField",
+    "Uploads::PresignedUpload",
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "inputs_types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "string",
+    "symbol"
+  ],
+  "result_types_depended_on": [
+    "Uploads::FormField",
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "errors_types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "string",
+    "symbol"
+  ],
+  "possible_errors": {
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.content_type.cannot_cast": {
+      "path": [
+        "content_type"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.content_type.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.content_type.missing_required_attribute": {
+      "path": [
+        "content_type"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.content_type.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.missing_required_attribute": {
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "runtime.unauthenticated": {
+      "category": "runtime",
+      "symbol": "unauthenticated",
+      "key": "runtime.unauthenticated",
+      "error": "Foobara::CommandConnector::UnauthenticatedError"
+    },
+    "runtime.unsupported_media_type": {
+      "category": "runtime",
+      "symbol": "unsupported_media_type",
+      "key": "runtime.unsupported_media_type",
+      "error": "Uploads::Presign::UnsupportedMediaTypeError"
+    }
+  },
+  "inputs_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "content_type": "string"
+    },
+    "required": [
+      "content_type"
+    ]
+  },
+  "description": null,
+  "result_type": "Uploads::PresignedUpload",
+  "errors_transformers": [
+    "Foobara::CommandConnectors::Transformers::AuthErrorsTransformer"
+  ],
+  "serializers": [
+    "Foobara::CommandConnectors::Serializers::ErrorsSerializer",
+    "Foobara::CommandConnectors::Serializers::AtomicSerializer",
+    "Foobara::CommandConnectors::Serializers::JsonSerializer"
+  ],
+  "requires_authentication": true,
+  "authenticator": {
+    "symbol": "authenticator",
+    "explanation": "authenticator"
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "scoped_path": [
+    "ProfileModel"
+  ],
+  "scoped_name": "ProfileModel",
+  "scoped_short_name": "ProfileModel",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Profiles",
+    "ProfileModel"
+  ],
+  "scoped_full_name": "Profiles::ProfileModel",
+  "scoped_category": "type",
+  "reference": "Profiles::ProfileModel",
+  "domain": "Profiles",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Profiles"
+  ],
+  "declaration_data": {
+    "type": "model",
+    "name": "ProfileModel",
+    "model_module": "Profiles",
+    "model_class": "Profiles::ProfileModel",
+    "model_base_class": "Foobara::Model",
+    "attributes_declaration": {
+      "type": "attributes",
+      "element_type_declarations": {
+        "display_name": "string",
+        "bio": "string",
+        "avatar_key": "string",
+        "avatar_url": "string",
+        "shown_name": "string"
+      },
+      "required": [
+        "shown_name"
+      ]
+    }
+  },
+  "possible_errors": {
+    "data.avatar_key.cannot_cast": {
+      "path": [
+        "avatar_key"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.avatar_key.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.avatar_url.cannot_cast": {
+      "path": [
+        "avatar_url"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.avatar_url.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.bio.cannot_cast": {
+      "path": [
+        "bio"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.bio.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.display_name.cannot_cast": {
+      "path": [
+        "display_name"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.display_name.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.missing_required_attribute": {
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.shown_name.cannot_cast": {
+      "path": [
+        "shown_name"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.shown_name.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.shown_name.missing_required_attribute": {
+      "path": [
+        "shown_name"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.shown_name.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    }
+  },
+  "name": "ProfileModel",
+  "target_classes": [
+    "Profiles::ProfileModel"
+  ],
+  "types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "description": null,
+  "base_type": "model",
+  "attributes_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "display_name": "string",
+      "bio": "string",
+      "avatar_key": "string",
+      "avatar_url": "string",
+      "shown_name": "string"
+    },
+    "required": [
+      "shown_name"
+    ]
+  },
+  "organization_name": "global_organization",
+  "domain_name": "Profiles",
+  "model_name": "ProfileModel",
+  "model_base_class": "Foobara::Model",
+  "model_class": "Profiles::ProfileModel"
+}

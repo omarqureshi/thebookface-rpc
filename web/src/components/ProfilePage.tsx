@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { api } from "../api"
-import type { Profile } from "../api/schema"
+import type { Profile } from "../api/types"
 import { uploadImage } from "../upload"
 import { errorMessage } from "./Composer"
 import { Avatar } from "./Avatar"
@@ -16,9 +16,9 @@ export function ProfilePage({ onDone, onSaved }: { onDone: () => void; onSaved?:
   useEffect(() => {
     api.profiles.get({}).then((p) => {
       setProfile(p)
-      setDisplayName(p.displayName ?? "")
+      setDisplayName(p.display_name ?? "")
       setBio(p.bio ?? "")
-      setAvatarKey(p.avatarKey ?? null)
+      setAvatarKey(p.avatar_key ?? null)
     })
   }, [])
 
@@ -46,7 +46,7 @@ export function ProfilePage({ onDone, onSaved }: { onDone: () => void; onSaved?:
         avatarKey,
       })
       setProfile(updated)
-      setAvatarKey(updated.avatarKey ?? null)
+      setAvatarKey(updated.avatar_key ?? null)
       setSaved(true)
       onSaved?.()
     } catch (e) {
@@ -65,14 +65,14 @@ export function ProfilePage({ onDone, onSaved }: { onDone: () => void; onSaved?:
       <article className="card">
         <div className="profile__head">
           <Avatar
-            name={profile.shownName}
-            url={profile.avatarUrl}
+            name={profile.shown_name}
+            url={profile.avatar_url}
             size="avatar--lg"
-            testId={profile.avatarUrl ? "profile-avatar" : undefined}
+            testId={profile.avatar_url ? "profile-avatar" : undefined}
           />
           {/* shown_name is computed server-side, so every client agrees on the
               fallback from display name to identity-provider name. */}
-          <h1 className="profile__name">{profile.shownName}</h1>
+          <h1 className="profile__name">{profile.shown_name}</h1>
         </div>
         {profile.bio && <p className="profile__bio">{profile.bio}</p>}
       </article>

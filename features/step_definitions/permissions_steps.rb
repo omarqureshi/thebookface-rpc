@@ -49,23 +49,18 @@ end
 # The card is re-found in each assertion rather than held across steps: React
 # re-renders between them, and a stored Element goes stale.
 
-def forge(procedure, input)
-  ctx = Bookface::Context.new(
-    viewer: Bookface::Viewer.new(sub: persona_sub(@me), email: nil, name: @me)
-  )
-  Prospect::Dispatcher.new(Bookface::AppRouter).call(procedure, input, ctx)
-end
+def forge(command, input) = run_command(command, input)
 
 When("I try to edit the post {string}") do |body|
   post = find_post(body)
-  @status, @body = forge("posts.update", { "id" => post.id, "body" => "hijacked" })
+  @status, @body = forge("Posts/UpdatePost", { "id" => post.id, "body" => "hijacked" })
   @attempted = [:post, body]
 end
 
 When("I try to delete the comment {string}") do |text|
   post = Post.recent.first
   comment = find_comment(post, text)
-  @status, @body = forge("comments.destroy",
+  @status, @body = forge("Comments/DestroyComment",
                          { "post_id" => post.id, "path" => comment.path })
   @attempted = [:comment, text]
   # Show the thread, so "still there" is about what a person actually sees.
@@ -81,8 +76,10 @@ Then("I should not see any edit or delete control") do
 end
 
 Then("I am told I can only change my own content") do
-  expect(@status).to eq(403)
-  expect(@body.dig("error", "code")).to eq("forbidden")
+  # 422, not 403: Foobara answers every declared runtime error with 422 and puts
+  # the meaning in the error's `symbol`. See features/support/rpc.rb.
+  expect(@status).to eq(422)
+  expect(error_symbols(@body)).to include("forbidden")
 end
 
 # --- consequences ----------------------------------------------------------

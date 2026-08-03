@@ -1,0 +1,31 @@
+{
+  "scoped_path": [
+    "Posts"
+  ],
+  "scoped_short_name": "Posts",
+  "types": [
+    "Posts::PostModel",
+    "Posts::PostPage"
+  ],
+  "commands": [
+    "Posts::CreatePost",
+    "Posts::DestroyPost",
+    "Posts::GetPost",
+    "Posts::ListPosts",
+    "Posts::UpdatePost"
+  ],
+  "domain": "Posts",
+  "organization": "global_organization",
+  "parent": [
+    "organization",
+    "global_organization"
+  ],
+  "reference": "Posts",
+  "scoped_category": "domain",
+  "scoped_full_name": "Posts",
+  "scoped_full_path": [
+    "Posts"
+  ],
+  "scoped_name": "Posts",
+  "scoped_prefix": null
+}

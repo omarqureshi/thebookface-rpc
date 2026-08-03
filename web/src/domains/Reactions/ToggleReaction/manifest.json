@@ -1,0 +1,174 @@
+{
+  "scoped_path": [
+    "ToggleReaction"
+  ],
+  "scoped_name": "ToggleReaction",
+  "scoped_short_name": "ToggleReaction",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Reactions",
+    "ToggleReaction"
+  ],
+  "scoped_full_name": "Reactions::ToggleReaction",
+  "scoped_category": "command",
+  "reference": "Reactions::ToggleReaction",
+  "domain": "Reactions",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Reactions"
+  ],
+  "types_depended_on": [
+    "Reactions::ReactionState",
+    "Shared::ReactionCount",
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "inputs_types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "string",
+    "symbol"
+  ],
+  "result_types_depended_on": [
+    "Shared::ReactionCount",
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "errors_types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "string",
+    "symbol"
+  ],
+  "possible_errors": {
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.emoji.cannot_cast": {
+      "path": [
+        "emoji"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.emoji.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.emoji.missing_required_attribute": {
+      "path": [
+        "emoji"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.emoji.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.missing_required_attribute": {
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.post_id.cannot_cast": {
+      "path": [
+        "post_id"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.post_id.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.post_id.missing_required_attribute": {
+      "path": [
+        "post_id"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.post_id.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.target.cannot_cast": {
+      "path": [
+        "target"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.target.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.target.missing_required_attribute": {
+      "path": [
+        "target"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.target.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "runtime.not_found": {
+      "category": "runtime",
+      "symbol": "not_found",
+      "key": "runtime.not_found",
+      "error": "Reactions::ToggleReaction::NotFoundError"
+    },
+    "runtime.unauthenticated": {
+      "category": "runtime",
+      "symbol": "unauthenticated",
+      "key": "runtime.unauthenticated",
+      "error": "Foobara::CommandConnector::UnauthenticatedError"
+    },
+    "runtime.unsupported_reaction": {
+      "category": "runtime",
+      "symbol": "unsupported_reaction",
+      "key": "runtime.unsupported_reaction",
+      "error": "Reactions::ToggleReaction::UnsupportedReactionError"
+    }
+  },
+  "inputs_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "post_id": "string",
+      "target": "string",
+      "emoji": "string"
+    },
+    "required": [
+      "emoji",
+      "post_id",
+      "target"
+    ]
+  },
+  "description": "Add, switch or remove the viewer's reaction. One entry point.",
+  "result_type": "Reactions::ReactionState",
+  "errors_transformers": [
+    "Foobara::CommandConnectors::Transformers::AuthErrorsTransformer"
+  ],
+  "serializers": [
+    "Foobara::CommandConnectors::Serializers::ErrorsSerializer",
+    "Foobara::CommandConnectors::Serializers::AtomicSerializer",
+    "Foobara::CommandConnectors::Serializers::JsonSerializer"
+  ],
+  "requires_authentication": true,
+  "authenticator": {
+    "symbol": "authenticator",
+    "explanation": "authenticator"
+  }
+}

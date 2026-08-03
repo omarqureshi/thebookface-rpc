@@ -1,5 +1,5 @@
 import { api } from "./api"
-import type { UploadedMedia } from "./api/schema"
+import type { UploadedMedia } from "./api/types"
 
 // Presign, then upload straight to the store. The bytes never pass through the
 // API — uploads.presign only mints a target scoped to the caller's own prefix.
@@ -11,19 +11,23 @@ export async function uploadImage(file: File): Promise<UploadedMedia> {
   const presigned = await api.uploads.presign({ contentType: file.type })
 
   const form = new FormData()
-  for (const [k, v] of Object.entries(presigned.fields)) form.append(k, v)
+  // Pairs rather than a map — see FOOBARA.md on the generator's
+  // associative_array limitation.
+  for (const f of presigned.fields as Array<{ name: string; value: string }>) {
+    form.append(f.name, f.value)
+  }
   form.append("file", file)
 
   const res = await fetch(presigned.url, { method: "POST", body: form })
   if (!res.ok) throw new Error(`upload failed: ${res.status}`)
 
   const { width, height } = await dimensions(file)
-  return { key: presigned.key, contentType: file.type, width, height }
+  return { key: presigned.key, content_type: file.type, width, height }
 }
 
 // Read the intrinsic size so the feed can reserve space and avoid reflow.
 // Best-effort: a file the browser cannot decode still uploads fine.
-function dimensions(file: File): Promise<{ width: number | null; height: number | null }> {
+function dimensions(file: File): Promise<{ width?: number; height?: number }> {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file)
     const img = new Image()
@@ -33,7 +37,7 @@ function dimensions(file: File): Promise<{ width: number | null; height: number 
     }
     img.onerror = () => {
       URL.revokeObjectURL(url)
-      resolve({ width: null, height: null })
+      resolve({})
     }
     img.src = url
   })

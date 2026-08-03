@@ -1,0 +1,29 @@
+{
+  "scoped_path": [
+    "Comments"
+  ],
+  "scoped_short_name": "Comments",
+  "types": [
+    "Comments::CommentModel"
+  ],
+  "commands": [
+    "Comments::CreateComment",
+    "Comments::DestroyComment",
+    "Comments::ListThread",
+    "Comments::UpdateComment"
+  ],
+  "domain": "Comments",
+  "organization": "global_organization",
+  "parent": [
+    "organization",
+    "global_organization"
+  ],
+  "reference": "Comments",
+  "scoped_category": "domain",
+  "scoped_full_name": "Comments",
+  "scoped_full_path": [
+    "Comments"
+  ],
+  "scoped_name": "Comments",
+  "scoped_prefix": null
+}

@@ -16,10 +16,34 @@ module Shared
     end
   end
 
+  # WORKAROUND, not a design improvement: an associative_array is the right
+  # model for "emoji => count", and the manifest expresses it fine — but
+  # Foobara's TypeScript generator cannot emit one, so it becomes a list of
+  # pairs. Reported upstream; revert when the generator handles maps.
+  class ReactionCount < Foobara::Model
+    attributes do
+      emoji :string, :required
+      count :integer, :required
+    end
+  end
+
   class MediaItem < Foobara::Model
     attributes do
       key :string, :required
       url :string, :required
+      content_type :string, :required
+      width :integer
+      height :integer
+    end
+  end
+
+  # What a client may SEND, which is not what it receives: the url is derived
+  # from the key by MediaStorage, so a caller neither supplies nor is trusted
+  # for it. Reusing MediaItem for both directions would demand a url the browser
+  # has no way to know.
+  class MediaUpload < Foobara::Model
+    attributes do
+      key :string, :required
       content_type :string, :required
       width :integer
       height :integer
@@ -59,5 +83,10 @@ module Shared
     end
 
     def timestamp(value) = value.to_time.utc.iso8601
+
+    # See Shared::ReactionCount — a map flattened to pairs for the TS generator.
+    def reaction_counts(record)
+      record.reaction_counts.map { |emoji, count| { emoji:, count: } }
+    end
   end
 end

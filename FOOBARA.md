@@ -102,14 +102,68 @@ property, obtained by construction.
   works — comments and reactions are 7MB smaller than uploads because they omit
   aws-sdk-s3 — but Foobara itself costs more than Prospect did.
 
-## Two footguns worth knowing
+## Footguns worth knowing
 
-Neither is documented anywhere I found, and both cost real time:
+None is documented anywhere I found, and all cost real time:
 
 - The authenticator block is `instance_exec`'d against the request, so it takes
   **no argument** and `self` is the request. `->(request) { … }` fails with a
   confusing arity error.
 - On the Rack connector the request exposes `env`, not `raw_request.env`.
+
+## Generator bugs found by porting the UI
+
+The whole React UI runs on the generated SDK (`script/generate_ts.rb`, 175
+files) and the cucumber suite passes against it — but three defects had to be
+worked around first. Two are patched after generation, in that script.
+
+- **`RequiresAuthCommand` assumes Foobara's own auth domain.** The generator
+  emits it for every command declaring `requires_authentication`, and the file
+  imports `./utils/accessTokens` and `./RefreshLogin` — neither of which it
+  generates unless the app uses `Foobara::Auth`. An app authenticating any other
+  way (bookface uses a cookie) gets an SDK that does not compile. Patched to a
+  pass-through: `RemoteCommand` already sends `credentials: "include"`.
+- **`RemoteCommand#_handleResponse` calls `this.dirtyQueries()` unconditionally**,
+  but the method is only emitted for apps that declare queries. With none
+  declared, *every successful command* raises `TypeError: this.dirtyQueries is
+  not a function` at runtime. Patched to a no-op. This is the more serious of
+  the two: it is not a type error, so it only surfaces in a browser.
+- **`associative_array` is unsupported** — "Not sure how to convert
+  associative_array to a TS type". Emoji=>count maps and presigned form fields
+  are both modelled as pair lists here to avoid it. Foobara's own IR handles
+  them; only the TS generator does not.
+
+And two sharp edges that are arguably documentation gaps rather than bugs:
+
+- **`raw_manifest:` and `manifest_url:` are not interchangeable.**
+  `Foobara.manifest` has symbol values and fails with "Not sure how to convert
+  :string to a TS type"; `JSON.parse` of it has string keys and fails with
+  "undefined local variable or method `serializers`". Only
+  `symbolize_names: true` works — and only against the manifest a *connector*
+  serves, because `serializers` and `requires_authentication` are
+  connector-level and absent from `Foobara.manifest`.
+- **`output_directory` is relative to the CWD**, not to `project_directory`.
+
+## Differences the port had to absorb
+
+Not defects — design differences that changed the app or its tests:
+
+- **Every declared runtime error answers 422.** Prospect chose a status per
+  error code (403 forbidden, 404 not_found); Foobara puts the meaning in the
+  error's `symbol` and the status is always 422. The forgery scenarios in
+  `features/step_definitions/permissions_steps.rb` now assert the symbol, which
+  is the more stable thing to assert anyway.
+- **Errors serialize as a JSON array**, not a single `{error: {code: …}}`
+  object — so a command can report several at once.
+- **Input and output types cannot be shared when the server derives a field.**
+  `CreatePost` first reused `Shared::MediaItem` for its `media` input, but that
+  type requires `url`, which `MediaStorage` derives from the key — so every
+  upload failed with "Missing required attribute url". Split into
+  `Shared::MediaUpload` (what a client may send) and `Shared::MediaItem` (what
+  it receives). Prospect had the same split for the same reason; it is a
+  property of the domain, not of either framework.
+- **Commands are at `/run/<Domain>/<Command>`**, from `scoped_full_path` — so
+  the Vite proxy forwards `/run`, not `/rpc`.
 
 ## What this means
 

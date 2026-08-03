@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { api, getUser } from "../api"
-import type { Post } from "../api/schema"
+import type { Post } from "../api/types"
 import { Composer, errorMessage } from "./Composer"
 import { Avatar } from "./Avatar"
 import { Reactions } from "./Reactions"
@@ -25,13 +25,13 @@ export function Media({ post }: { post: Post }) {
   )
 }
 
-export function Byline({ post }: { post: Pick<Post, "author" | "createdAt"> }) {
+export function Byline({ post }: { post: Pick<Post, "author" | "created_at"> }) {
   return (
     <div className="post__head">
-      <Avatar name={post.author.name} url={post.author.avatarUrl} />
+      <Avatar name={post.author.name} url={post.author.avatar_url} />
       <div>
         <div className="post__author">{post.author.name}</div>
-        <div className="post__time">{timeAgo(post.createdAt)}</div>
+        <div className="post__time">{timeAgo(post.created_at)}</div>
       </div>
     </div>
   )
@@ -50,9 +50,9 @@ function PostCard({
   navigate: (r: Route) => void
   onChanged: () => void
 }) {
-  const [count, setCount] = useState(post.commentCount)
+  const [count, setCount] = useState(post.comment_count)
   const [draft, setDraft] = useState(post.body ?? "")
-  const [counts, setCounts] = useState(post.reactionCounts ?? {})
+  const [counts, setCounts] = useState<any>(post.reaction_counts ?? [])
   const [error, setError] = useState<string | null>(null)
 
   async function act(fn: () => Promise<unknown>, after: Route = { name: "feed" }) {
@@ -171,7 +171,7 @@ export function Feed({ route, navigate }: { route: Route; navigate: (r: Route) =
       .feed({ limit: 25 })
       .then((page) => {
         setPosts(page.posts)
-        setCursor(page.nextCursor ?? null)
+        setCursor(page.next_cursor ?? null)
       })
       .finally(() => setLoading(false))
   }, [])
@@ -182,7 +182,7 @@ export function Feed({ route, navigate }: { route: Route; navigate: (r: Route) =
     if (!cursor) return
     const page = await api.posts.feed({ limit: 25, cursor })
     setPosts((p) => [...p, ...page.posts])
-    setCursor(page.nextCursor ?? null)
+    setCursor(page.next_cursor ?? null)
   }
 
   return (

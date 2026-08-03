@@ -1,0 +1,228 @@
+{
+  "scoped_path": [
+    "PresignedUpload"
+  ],
+  "scoped_name": "PresignedUpload",
+  "scoped_short_name": "PresignedUpload",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Uploads",
+    "PresignedUpload"
+  ],
+  "scoped_full_name": "Uploads::PresignedUpload",
+  "scoped_category": "type",
+  "reference": "Uploads::PresignedUpload",
+  "domain": "Uploads",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Uploads"
+  ],
+  "declaration_data": {
+    "type": "model",
+    "name": "PresignedUpload",
+    "model_module": "Uploads",
+    "model_class": "Uploads::PresignedUpload",
+    "model_base_class": "Foobara::Model",
+    "attributes_declaration": {
+      "type": "attributes",
+      "element_type_declarations": {
+        "url": "string",
+        "fields": {
+          "type": "array",
+          "element_type_declaration": "Uploads::FormField"
+        },
+        "key": "string"
+      },
+      "required": [
+        "fields",
+        "key",
+        "url"
+      ]
+    }
+  },
+  "possible_errors": {
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.fields.#.cannot_cast": {
+      "path": [
+        "fields",
+        "#"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.fields.#.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.fields.#.missing_required_attribute": {
+      "path": [
+        "fields",
+        "#"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.fields.#.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.fields.#.name.cannot_cast": {
+      "path": [
+        "fields",
+        "#",
+        "name"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.fields.#.name.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.fields.#.name.missing_required_attribute": {
+      "path": [
+        "fields",
+        "#",
+        "name"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.fields.#.name.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.fields.#.unexpected_attributes": {
+      "path": [
+        "fields",
+        "#"
+      ],
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.fields.#.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "data.fields.#.value.cannot_cast": {
+      "path": [
+        "fields",
+        "#",
+        "value"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.fields.#.value.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.fields.#.value.missing_required_attribute": {
+      "path": [
+        "fields",
+        "#",
+        "value"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.fields.#.value.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.fields.cannot_cast": {
+      "path": [
+        "fields"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.fields.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.fields.missing_required_attribute": {
+      "path": [
+        "fields"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.fields.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.key.cannot_cast": {
+      "path": [
+        "key"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.key.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.key.missing_required_attribute": {
+      "path": [
+        "key"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.key.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.missing_required_attribute": {
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "data.url.cannot_cast": {
+      "path": [
+        "url"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.url.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.url.missing_required_attribute": {
+      "path": [
+        "url"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.url.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    }
+  },
+  "name": "PresignedUpload",
+  "target_classes": [
+    "Uploads::PresignedUpload"
+  ],
+  "types_depended_on": [
+    "Uploads::FormField",
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "description": null,
+  "base_type": "model",
+  "attributes_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "url": "string",
+      "fields": {
+        "type": "array",
+        "element_type_declaration": "Uploads::FormField"
+      },
+      "key": "string"
+    },
+    "required": [
+      "fields",
+      "key",
+      "url"
+    ]
+  },
+  "organization_name": "global_organization",
+  "domain_name": "Uploads",
+  "model_name": "PresignedUpload",
+  "model_base_class": "Foobara::Model",
+  "model_class": "Uploads::PresignedUpload"
+}

@@ -5,12 +5,18 @@
 module Uploads
   foobara_domain!
 
+  class FormField < Foobara::Model
+    attributes do
+      name :string, :required
+      value :string, :required
+    end
+  end
+
   class PresignedUpload < Foobara::Model
     attributes do
       url :string, :required
-      fields :associative_array, :required,
-             key_type_declaration: :string,
-             value_type_declaration: :string
+      # Same generator limitation: presigned form fields as pairs.
+      fields [FormField], :required
       key :string, :required
     end
   end
@@ -30,7 +36,7 @@ module Uploads
 
       presigned = MediaStorage.presigned_upload(user_sub: viewer.sub, content_type:)
       { url: presigned.fetch(:url), key: presigned.fetch(:key),
-        fields: presigned.fetch(:fields).transform_keys(&:to_s) }
+        fields: presigned.fetch(:fields).map { |name, value| { name: name.to_s, value: value.to_s } } }
     end
   end
 end

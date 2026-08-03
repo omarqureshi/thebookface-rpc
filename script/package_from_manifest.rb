@@ -14,7 +14,21 @@ ROOT  = File.expand_path("..", __dir__)
 OUT   = File.join(ROOT, "build")
 IMAGE = "public.ecr.aws/sam/build-ruby4.0"
 
-manifest = JSON.parse(File.read(ARGV[0] || "/tmp/bookface-manifest.json"))
+# Fetched live from the running connector by default, for the same reason
+# script/generate_ts.rb does: a manifest snapshot on disk goes stale silently,
+# and the failure looks like a packaging bug rather than an old file. Pass a
+# path to use a snapshot deliberately.
+#
+#   script/dev.sh serve    # then
+#   bundle exec ruby script/package_from_manifest.rb
+manifest =
+  if ARGV[0]
+    JSON.parse(File.read(ARGV[0]))
+  else
+    require "net/http"
+    url = URI(ENV.fetch("BOOKFACE_MANIFEST", "http://localhost:9292/manifest"))
+    JSON.parse(Net::HTTP.get(url))
+  end
 
 # --- units, derived entirely from the manifest -------------------------------
 app_commands = manifest["command"].reject { |_, c| c["domain"].to_s.start_with?("Foobara", "global") }
@@ -24,7 +38,12 @@ units = app_commands.group_by { |_, c| c["domain"] }.map do |domain, cmds|
   { name: domain.downcase,
     domain: domain,
     commands: cmds.map(&:first),
-    route: "/rpc/#{domain.downcase}/{proxy+}",
+    # The route has to match what the connector actually serves, which is
+    # /run/<Domain>/<Command> — the command's scoped_full_path under the
+    # connector's prefix. Prospect's /rpc/<service>/<procedure> was the same
+    # shape by coincidence, not by agreement, so this is derived rather than
+    # assumed.
+    route: "/run/#{domain}/{proxy+}",
     # Straight from the manifest: no hand-maintained anonymous: list.
     #
     # `requires_authentication`, NOT `authenticator` — the latter says which
@@ -59,8 +78,14 @@ def handler_source(unit)
       VIEWER = Struct.new(:sub, :name)
 
       def self.viewer_from(env)
-        sub = env["HTTP_X_DEV_SUB"]
-        sub && VIEWER.new(sub, env["HTTP_X_DEV_NAME"] || sub)
+        sub  = env["HTTP_X_DEV_SUB"]
+        name = env["HTTP_X_DEV_NAME"]
+        unless sub
+          cookies = Rack::Utils.parse_cookies(env)
+          sub  = cookies["dev_sub"]
+          name = cookies["dev_name"]
+        end
+        sub && VIEWER.new(sub, name || sub)
       end
     end
 
@@ -80,7 +105,10 @@ def handler_source(unit)
       # An API Gateway v2 event, adapted to a Rack env for the connector.
       env = {
         "REQUEST_METHOD" => event.dig("requestContext", "http", "method") || "POST",
-        "PATH_INFO"      => (event["rawPath"] || "").sub(%r{\\A/rpc/[^/]+}, ""),
+        # Passed through unchanged. Prospect mounted each service at its own
+        # prefix and stripped it; here the route IS the connector's own path
+        # (/run/<Domain>/<Command>), so stripping would break dispatch.
+        "PATH_INFO"      => event["rawPath"] || "",
         "QUERY_STRING"   => event["rawQueryString"].to_s,
         "rack.input"     => StringIO.new(event["body"].to_s),
         "rack.errors"    => $stderr

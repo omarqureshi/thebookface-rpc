@@ -1,0 +1,126 @@
+{
+  "scoped_path": [
+    "ReactionCount"
+  ],
+  "scoped_name": "ReactionCount",
+  "scoped_short_name": "ReactionCount",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Shared",
+    "ReactionCount"
+  ],
+  "scoped_full_name": "Shared::ReactionCount",
+  "scoped_category": "type",
+  "reference": "Shared::ReactionCount",
+  "domain": "Shared",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Shared"
+  ],
+  "declaration_data": {
+    "type": "model",
+    "name": "ReactionCount",
+    "model_module": "Shared",
+    "model_class": "Shared::ReactionCount",
+    "model_base_class": "Foobara::Model",
+    "attributes_declaration": {
+      "type": "attributes",
+      "element_type_declarations": {
+        "emoji": "string",
+        "count": "integer"
+      },
+      "required": [
+        "count",
+        "emoji"
+      ]
+    }
+  },
+  "possible_errors": {
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.count.cannot_cast": {
+      "path": [
+        "count"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.count.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.count.missing_required_attribute": {
+      "path": [
+        "count"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.count.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.emoji.cannot_cast": {
+      "path": [
+        "emoji"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.emoji.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.emoji.missing_required_attribute": {
+      "path": [
+        "emoji"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.emoji.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.missing_required_attribute": {
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    }
+  },
+  "name": "ReactionCount",
+  "target_classes": [
+    "Shared::ReactionCount"
+  ],
+  "types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "integer",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "description": null,
+  "base_type": "model",
+  "attributes_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "emoji": "string",
+      "count": "integer"
+    },
+    "required": [
+      "count",
+      "emoji"
+    ]
+  },
+  "organization_name": "global_organization",
+  "domain_name": "Shared",
+  "model_name": "ReactionCount",
+  "model_base_class": "Foobara::Model",
+  "model_class": "Shared::ReactionCount"
+}

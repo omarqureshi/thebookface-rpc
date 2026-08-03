@@ -1,0 +1,121 @@
+{
+  "scoped_path": [
+    "UpdateProfile"
+  ],
+  "scoped_name": "UpdateProfile",
+  "scoped_short_name": "UpdateProfile",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Profiles",
+    "UpdateProfile"
+  ],
+  "scoped_full_name": "Profiles::UpdateProfile",
+  "scoped_category": "command",
+  "reference": "Profiles::UpdateProfile",
+  "domain": "Profiles",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Profiles"
+  ],
+  "types_depended_on": [
+    "Profiles::ProfileModel",
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "inputs_types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "string",
+    "symbol"
+  ],
+  "result_types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "errors_types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "symbol"
+  ],
+  "possible_errors": {
+    "data.avatar_key.cannot_cast": {
+      "path": [
+        "avatar_key"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.avatar_key.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.bio.cannot_cast": {
+      "path": [
+        "bio"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.bio.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.display_name.cannot_cast": {
+      "path": [
+        "display_name"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.display_name.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "runtime.unauthenticated": {
+      "category": "runtime",
+      "symbol": "unauthenticated",
+      "key": "runtime.unauthenticated",
+      "error": "Foobara::CommandConnector::UnauthenticatedError"
+    }
+  },
+  "inputs_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "display_name": "string",
+      "bio": "string",
+      "avatar_key": "string"
+    }
+  },
+  "description": null,
+  "result_type": "Profiles::ProfileModel",
+  "errors_transformers": [
+    "Foobara::CommandConnectors::Transformers::AuthErrorsTransformer"
+  ],
+  "serializers": [
+    "Foobara::CommandConnectors::Serializers::ErrorsSerializer",
+    "Foobara::CommandConnectors::Serializers::AtomicSerializer",
+    "Foobara::CommandConnectors::Serializers::JsonSerializer"
+  ],
+  "requires_authentication": true,
+  "authenticator": {
+    "symbol": "authenticator",
+    "explanation": "authenticator"
+  }
+}

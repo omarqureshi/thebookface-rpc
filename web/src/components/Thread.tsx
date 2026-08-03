@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { api, getUser } from "../api"
-import type { Comment } from "../api/schema"
+import type { Comment } from "../api/types"
 import { Reactions } from "./Reactions"
 import { errorMessage } from "./Composer"
 import { Avatar } from "./Avatar"
@@ -21,7 +21,7 @@ function CommentNode({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [counts, setCounts] = useState(comment.reactionCounts ?? {})
+  const [counts, setCounts] = useState<any>(comment.reaction_counts ?? [])
   const target = `comment#${comment.path}`
 
   async function act(fn: () => Promise<unknown>) {
@@ -47,7 +47,7 @@ function CommentNode({
       data-depth={comment.depth}
       style={{ ["--indent" as any]: comment.depth }}
     >
-      <Avatar name={comment.author?.name} url={comment.author?.avatarUrl} size="avatar--sm" />
+      <Avatar name={comment.author?.name} url={comment.author?.avatar_url} size="avatar--sm" />
 
       <div className="comment__body">
         {error && (
@@ -90,7 +90,7 @@ function CommentNode({
         )}
 
         <div className="comment__meta">
-          <span className="comment__time">{timeAgo(comment.createdAt)}</span>
+          <span className="comment__time">{timeAgo(comment.created_at)}</span>
           {getUser() && !comment.deleted && (
             <button className="comment__action" onClick={() => setReplying((r) => !r)}>
               Reply
@@ -174,9 +174,10 @@ export function Thread({
   const load = useCallback(() => {
     Promise.all([api.comments.thread({ postId }), api.reactions.mine({ postId })]).then(
       ([t, m]) => {
-        setComments(t.comments)
-        setMine(m.byTarget ?? {})
-        onCountChanged?.(t.comments.length)
+        setComments(t)
+        // A list of {target, emoji} pairs, for the same generator limitation.
+        setMine(Object.fromEntries((m ?? []).map((r: any) => [r.target, r.emoji])))
+        onCountChanged?.(t.length)
       },
     )
     // onCountChanged is a fresh closure each render; depending on it would

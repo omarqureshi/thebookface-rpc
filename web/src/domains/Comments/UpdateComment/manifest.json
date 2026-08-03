@@ -1,0 +1,180 @@
+{
+  "scoped_path": [
+    "UpdateComment"
+  ],
+  "scoped_name": "UpdateComment",
+  "scoped_short_name": "UpdateComment",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Comments",
+    "UpdateComment"
+  ],
+  "scoped_full_name": "Comments::UpdateComment",
+  "scoped_category": "command",
+  "reference": "Comments::UpdateComment",
+  "domain": "Comments",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Comments"
+  ],
+  "types_depended_on": [
+    "Comments::CommentModel",
+    "Shared::Author",
+    "Shared::ReactionCount",
+    "array",
+    "attributes",
+    "boolean",
+    "duck",
+    "integer",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "inputs_types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "string",
+    "symbol"
+  ],
+  "result_types_depended_on": [
+    "Shared::Author",
+    "Shared::ReactionCount",
+    "array",
+    "attributes",
+    "boolean",
+    "duck",
+    "integer",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "errors_types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "string",
+    "symbol"
+  ],
+  "possible_errors": {
+    "data.body.cannot_cast": {
+      "path": [
+        "body"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.body.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.body.missing_required_attribute": {
+      "path": [
+        "body"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.body.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.missing_required_attribute": {
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.path.cannot_cast": {
+      "path": [
+        "path"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.path.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.path.missing_required_attribute": {
+      "path": [
+        "path"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.path.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.post_id.cannot_cast": {
+      "path": [
+        "post_id"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.post_id.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.post_id.missing_required_attribute": {
+      "path": [
+        "post_id"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.post_id.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "runtime.forbidden": {
+      "category": "runtime",
+      "symbol": "forbidden",
+      "key": "runtime.forbidden",
+      "error": "Comments::UpdateComment::ForbiddenError"
+    },
+    "runtime.not_found": {
+      "category": "runtime",
+      "symbol": "not_found",
+      "key": "runtime.not_found",
+      "error": "Comments::UpdateComment::NotFoundError"
+    },
+    "runtime.unauthenticated": {
+      "category": "runtime",
+      "symbol": "unauthenticated",
+      "key": "runtime.unauthenticated",
+      "error": "Foobara::CommandConnector::UnauthenticatedError"
+    }
+  },
+  "inputs_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "post_id": "string",
+      "path": "string",
+      "body": "string"
+    },
+    "required": [
+      "body",
+      "path",
+      "post_id"
+    ]
+  },
+  "description": null,
+  "result_type": "Comments::CommentModel",
+  "errors_transformers": [
+    "Foobara::CommandConnectors::Transformers::AuthErrorsTransformer"
+  ],
+  "serializers": [
+    "Foobara::CommandConnectors::Serializers::ErrorsSerializer",
+    "Foobara::CommandConnectors::Serializers::AtomicSerializer",
+    "Foobara::CommandConnectors::Serializers::JsonSerializer"
+  ],
+  "requires_authentication": true,
+  "authenticator": {
+    "symbol": "authenticator",
+    "explanation": "authenticator"
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "scoped_path": [
+    "MyReaction"
+  ],
+  "scoped_name": "MyReaction",
+  "scoped_short_name": "MyReaction",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Reactions",
+    "MyReaction"
+  ],
+  "scoped_full_name": "Reactions::MyReaction",
+  "scoped_category": "type",
+  "reference": "Reactions::MyReaction",
+  "domain": "Reactions",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Reactions"
+  ],
+  "declaration_data": {
+    "type": "model",
+    "name": "MyReaction",
+    "model_module": "Reactions",
+    "model_class": "Reactions::MyReaction",
+    "model_base_class": "Foobara::Model",
+    "attributes_declaration": {
+      "type": "attributes",
+      "element_type_declarations": {
+        "target": "string",
+        "emoji": "string"
+      },
+      "required": [
+        "emoji",
+        "target"
+      ]
+    }
+  },
+  "possible_errors": {
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.emoji.cannot_cast": {
+      "path": [
+        "emoji"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.emoji.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.emoji.missing_required_attribute": {
+      "path": [
+        "emoji"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.emoji.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.missing_required_attribute": {
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.target.cannot_cast": {
+      "path": [
+        "target"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.target.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.target.missing_required_attribute": {
+      "path": [
+        "target"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.target.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    }
+  },
+  "name": "MyReaction",
+  "target_classes": [
+    "Reactions::MyReaction"
+  ],
+  "types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "description": null,
+  "base_type": "model",
+  "attributes_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "target": "string",
+      "emoji": "string"
+    },
+    "required": [
+      "emoji",
+      "target"
+    ]
+  },
+  "organization_name": "global_organization",
+  "domain_name": "Reactions",
+  "model_name": "MyReaction",
+  "model_base_class": "Foobara::Model",
+  "model_class": "Reactions::MyReaction"
+}
