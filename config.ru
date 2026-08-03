@@ -43,11 +43,37 @@ class ExtractViewer
   end
 end
 
-connector = Foobara::CommandConnectors::Http::Rack.new
+# The authenticator is the gate for requires_authentication commands; the
+# middleware above supplies identity to public ones, which the connector never
+# authenticates. Both read the same headers.
+def viewer_from(env)
+  sub = env["HTTP_X_DEV_SUB"]
+  sub && Viewer.new(sub, env["HTTP_X_DEV_NAME"] || sub)
+end
 
-# One line per deployment unit. A packaging step would generate exactly this,
-# with the domain chosen per unit.
-connector.connect(Posts)
+connector = Foobara::CommandConnectors::Http::Rack.new(
+  # instance_exec'd against the request: no argument, `self` is the request.
+  authenticator: -> { viewer_from(env) }
+)
+
+# One line per deployment unit. Locally every domain is connected to one
+# process; a packaged unit connects exactly one, which is what makes it a
+# subset — the others are never registered, so there is nothing to refuse.
+# Commands that read public data are connected open; everything that writes, or
+# that acts on the viewer's own records, requires authentication. This is the
+# single declaration the manifest's `authenticator` field reflects — so the
+# packager derives the public list rather than being handed one.
+PUBLIC_COMMANDS = [
+  Posts::ListPosts, Posts::GetPost,
+  Comments::ListThread,
+  Reactions::MyReactions
+].freeze
+
+[Posts, Comments, Reactions, Profiles, Uploads].each do |domain|
+  domain.foobara_all_command.each do |command|
+    connector.connect(command, requires_authentication: !PUBLIC_COMMANDS.include?(command))
+  end
+end
 
 use ExtractViewer
 run connector

@@ -7,14 +7,39 @@ branch answers that by building it, not by reasoning about it.
 
 ## What works
 
-A Posts domain of three commands, served by Foobara's Rack connector locally,
-packaged from the manifest into a Lambda artifact that boots in the Lambda
-runtime image and answers an API Gateway v2 event with live DynamoDB data.
+All five domains — 12 commands — served by Foobara's Rack connector locally and
+packaged from the manifest into five Lambda artifacts, each of which boots in
+the runtime image, serves its own commands and 404s every other domain's.
 
 ```
-built posts: 3 commands, route /rpc/posts/{proxy+}, public 3
-status=200  [{"id":"2148f64e-…","body":"Written as a Foobara command",…}]
+built comments:  4 commands, route /rpc/comments/{proxy+},  public 1
+built posts:     3 commands, route /rpc/posts/{proxy+},     public 2
+built profiles:  2 commands, route /rpc/profiles/{proxy+},  public 0
+built reactions: 2 commands, route /rpc/reactions/{proxy+}, public 1
+built uploads:   1 commands, route /rpc/uploads/{proxy+},   public 0
 ```
+
+Isolation, in the built artifacts:
+
+```
+posts      own=200  foreign(Uploads)=404
+comments   own=422  foreign(Posts)=404      (422 = input validation: it ran)
+reactions  own=422  foreign(Posts)=404
+profiles   own=200  foreign(Posts)=404
+uploads    own=422  foreign(Posts)=404
+```
+
+And the auth gate, also in the artifacts:
+
+```
+Posts::ListPosts      signed-in=200  anonymous=200   (public)
+Posts::CreatePost     signed-in=200  anonymous=401
+Uploads::Presign      signed-in=200  anonymous=401
+Profiles::GetProfile  signed-in=200  anonymous=401
+```
+
+The public/auth split is **derived from the manifest**, not handed to the
+packager — `requires_authentication`, one field per command.
 
 ## The manifest drives packaging
 
@@ -65,8 +90,26 @@ property, obtained by construction.
   `requires_authentication`, so a command that is public *and* viewer-aware
   never learns who is calling — the same gap as API Gateway's JWT authorizer,
   one layer up. Worked around here with middleware that always runs.
-- **Artifact size**: 42MB against 31–38MB on the Prospect branch, for a smaller
-  app. Not measured carefully; worth checking before it matters.
+- **Optional auth needs two mechanisms, not one.** `requires_authentication:
+  true` calls the connector's authenticator — and raises on nil if there isn't
+  one — while public commands skip authentication entirely. So a public but
+  viewer-aware command needs identity from somewhere else. This branch pairs an
+  authenticator (the gate) with middleware (identity for public commands), both
+  reading the same headers. Worth raising with the maintainer: it is the same
+  shape of problem as API Gateway's JWT authorizer.
+- **Artifact size**: 35MB for the DynamoDB-only units, 42MB for those needing
+  the S3 SDK, against 31–38MB on the Prospect branch. Per-unit gem slicing
+  works — comments and reactions are 7MB smaller than uploads because they omit
+  aws-sdk-s3 — but Foobara itself costs more than Prospect did.
+
+## Two footguns worth knowing
+
+Neither is documented anywhere I found, and both cost real time:
+
+- The authenticator block is `instance_exec`'d against the request, so it takes
+  **no argument** and `self` is the request. `->(request) { … }` fails with a
+  confusing arity error.
+- On the Rack connector the request exposes `env`, not `raw_request.env`.
 
 ## What this means
 

@@ -18,13 +18,19 @@ manifest = JSON.parse(File.read(ARGV[0] || "/tmp/bookface-manifest.json"))
 
 # --- units, derived entirely from the manifest -------------------------------
 app_commands = manifest["command"].reject { |_, c| c["domain"].to_s.start_with?("Foobara", "global") }
+# A domain with no commands (Shared holds only types) yields no unit — units
+# come from commands, not from domains.
 units = app_commands.group_by { |_, c| c["domain"] }.map do |domain, cmds|
   { name: domain.downcase,
     domain: domain,
     commands: cmds.map(&:first),
     route: "/rpc/#{domain.downcase}/{proxy+}",
     # Straight from the manifest: no hand-maintained anonymous: list.
-    public: cmds.reject { |_, c| c["authenticator"] }.map(&:first) }
+    #
+    # `requires_authentication`, NOT `authenticator` — the latter says which
+    # authenticator applies, which is a different question and is absent
+    # entirely when identity comes from middleware.
+    public: cmds.reject { |_, c| c["requires_authentication"] }.map(&:first) }
 end
 
 # --- one handler per unit ----------------------------------------------------
@@ -39,8 +45,36 @@ def handler_source(unit)
     require_relative "config/boot"
     require "foobara/rack_connector"
 
-    CONNECTOR = Foobara::CommandConnectors::Http::Rack.new
-    CONNECTOR.connect(#{unit[:domain]})
+    # Both are needed, and this is the optional-auth gap made concrete:
+    #
+    #   the authenticator is the GATE. requires_authentication: true calls it,
+    #   and without one the connector raises on nil.
+    #   the thread-local is IDENTITY for public commands, which the connector
+    #   skips authenticating entirely — so a public but viewer-aware command
+    #   would otherwise never learn who is calling.
+    #
+    # They read the same headers. Deployed, both would read the authorizer's
+    # verified claims instead.
+    module BookfaceAuth
+      VIEWER = Struct.new(:sub, :name)
+
+      def self.viewer_from(env)
+        sub = env["HTTP_X_DEV_SUB"]
+        sub && VIEWER.new(sub, env["HTTP_X_DEV_NAME"] || sub)
+      end
+    end
+
+    CONNECTOR = Foobara::CommandConnectors::Http::Rack.new(
+      # instance_exec'd against the request, so this takes no argument and
+      # `self` is the request itself.
+      authenticator: -> { BookfaceAuth.viewer_from(env) }
+    )
+    #{unit[:domain]}.foobara_all_command.each do |command|
+      CONNECTOR.connect(
+        command,
+        requires_authentication: !#{unit[:public].inspect}.include?(command.full_command_name)
+      )
+    end
 
     def handle(event:, context:)
       # An API Gateway v2 event, adapted to a Rack env for the connector.
@@ -52,8 +86,19 @@ def handler_source(unit)
         "rack.errors"    => $stderr
       }
       (event["headers"] || {}).each { |k, v| env["HTTP_" + k.upcase.tr("-", "_")] = v }
-      status, headers, body = CONNECTOR.call(env)
-      { "statusCode" => status, "headers" => headers, "body" => body.join }
+
+      # Identity extraction has to be generated too: it is connector wiring, not
+      # domain logic, and locally it lives in Rack middleware that a Lambda
+      # handler does not inherit. Deployed this would read the authorizer's
+      # claims rather than dev headers.
+      Thread.current[:bookface_viewer] = BookfaceAuth.viewer_from(env)
+
+      begin
+        status, headers, body = CONNECTOR.call(env)
+        { "statusCode" => status, "headers" => headers, "body" => body.join }
+      ensure
+        Thread.current[:bookface_viewer] = nil
+      end
     end
   RUBY
 end

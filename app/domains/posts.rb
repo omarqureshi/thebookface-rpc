@@ -6,36 +6,17 @@
 module Posts
   foobara_domain!
 
-  # See config.ru: the caller is a thread-local for this spike, not Foobara's
-  # current_user, because that is scoped to authorization rules.
-  def self.viewer = Thread.current[:bookface_viewer]
+  # The caller comes from Shared::Viewer — see config.ru.
 
   # Wire types, declared in Foobara's type DSL rather than as Sorbet structs.
   # Same allowlist discipline: nothing here comes from the Dynamoid model
   # automatically, so a new persisted field cannot leak.
-  class Author < Foobara::Model
-    attributes do
-      name :string, :required
-      avatar_url :string
-    end
-  end
-
-  class MediaItem < Foobara::Model
-    attributes do
-      key :string, :required
-      url :string, :required
-      content_type :string, :required
-      width :integer
-      height :integer
-    end
-  end
-
   class PostModel < Foobara::Model
     attributes do
       id :string, :required
       body :string
-      author Author, :required
-      media [MediaItem], default: []
+      author Shared::Author, :required
+      media [Shared::MediaItem], default: []
       # Emoji => count. Foobara's associative_array is the analogue of the IR's
       # `map` node: keys are data, not field names.
       reaction_counts :associative_array,
@@ -57,22 +38,11 @@ module Posts
       {
         id: record.id,
         **(record.body ? { body: record.body } : {}),
-        # Foobara validates the RESULT too, and an optional attribute means
-        # "may be absent", not "may be nil" — so omit rather than pass nil.
-        # Prospect's IR never checked outputs at all.
-        author: { name: record.author_name.to_s }.tap { |a|
-          a[:avatar_url] = MediaStorage.public_url(record.author_avatar) if record.author_avatar.present?
-        },
-        media: record.media_items.map { |m|
-          { key: m["key"], url: MediaStorage.public_url(m["key"]),
-            content_type: m["content_type"] }.tap { |h|
-              h[:width]  = m["width"].to_i  if m["width"]
-              h[:height] = m["height"].to_i if m["height"]
-            }
-        },
+        author: Shared::Present.author(record),
+        media: record.media_items.map { |m| Shared::Present.media(m) },
         reaction_counts: record.reaction_counts,
         comment_count: record.comment_count,
-        created_at: record.created_at.to_time.utc.iso8601,
+        created_at: Shared::Present.timestamp(record.created_at),
         editable: ability.can?(:update, record),
         deletable: ability.can?(:destroy, record)
       }
@@ -90,7 +60,7 @@ module Posts
 
     def execute
       posts, = Post.page(limit:, cursor:)
-      posts.map { |p| Present.post(p, Posts.viewer) }
+      posts.map { |p| Present.post(p, Shared::Viewer.current) }
     end
   end
 
@@ -103,7 +73,7 @@ module Posts
 
     def execute
       record = Post.find(id)
-      Present.post(record, Posts.viewer)
+      Present.post(record, Shared::Viewer.current)
     rescue Dynamoid::Errors::RecordNotFound
       add_runtime_error :not_found, "No such post", id:
     end
@@ -112,12 +82,12 @@ module Posts
   class CreatePost < Foobara::Command
     inputs do
       body :string
-      media [MediaItem], default: []
+      media [Shared::MediaItem], default: []
     end
     result PostModel
 
     def execute
-      viewer = Posts.viewer
+      viewer = Shared::Viewer.require!
       profile = Profile.for(viewer.sub)
       record = Post.new(
         body:,
@@ -127,7 +97,7 @@ module Posts
         author_avatar: profile.avatar_key
       )
       record.save
-      Present.post(record, Posts.viewer)
+      Present.post(record, Shared::Viewer.current)
     end
   end
 end

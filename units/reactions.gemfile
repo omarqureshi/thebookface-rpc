@@ -1,1 +1,6 @@
-eval_gemfile File.expand_path("../common.gemfile", __dir__)
+source "https://rubygems.org"
+gem "foobara"
+gem "foobara-rack-connector"
+gem "dynamoid", "~> 3.10"
+gem "aws-sdk-dynamodb", "~> 1"
+gem "cancancan", "~> 3.6"
