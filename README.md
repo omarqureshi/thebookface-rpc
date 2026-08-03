@@ -3,6 +3,24 @@
 Bookface as a [Prospect](../../prospect) app — one service per controller, each
 a Lambda. See [DESIGN.md](DESIGN.md). No UI.
 
+## Repository layout
+
+This app depends on [prospect](https://github.com/omarqureshi/prospect) as a
+**path gem**, so the two must be cloned as siblings:
+
+```
+repos/
+  prospect/
+  thebookface-rpc/
+```
+
+`path:` rather than `git:` on purpose: the two are developed together, and a
+change to the framework should be visible here without a commit and a bundle
+update. It is also what makes packaging work — `script/package.rb` mounts the
+prospect checkout into the build container, which a git-sourced gem would not
+need but a path gem does. Once prospect is published, the `mounts:` option and
+these path references both go away.
+
 ## Local
 
 Needs Docker and Ruby 3.3+. No AWS account, no credentials, no LocalStack —
