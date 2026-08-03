@@ -1,72 +1,53 @@
 # frozen_string_literal: true
 
-# Local transport: the whole router in ONE process, every service mounted.
-# Deployed, these same procedures sit in seven separate Lambdas — but both go
-# through Prospect::Dispatcher, so behaviour cannot drift between them.
+# The Foobara Rack connector IS a Rack app, so the same object serves locally
+# and (via an event adapter) inside Lambda.
 #
-#   script/dev.sh up
-#
-# There is no API Gateway locally and therefore no authorizer, so identity comes
-# from X-Dev-* headers. This mirrors the Rails app's `sessions#dev_create`
-# escape hatch, which was likewise local-only. See DESIGN.md §3.
+# `connect(Posts)` registers exactly that domain's commands — which is how a
+# per-domain deployment unit gets its subset. A unit does not have to *refuse*
+# other domains' commands, as Prospect::Lambda does; it simply never registers
+# them.
 
 require_relative "config/boot"
-require "fileutils"
+require "foobara/rack_connector"
 
-# Dev-only object store, so the image flow works end to end without S3 or
-# LocalStack. MediaStorage#presigned_upload points the browser here; the bytes
-# land on disk and are served back. Deployed, both of these are S3 and none of
-# this exists.
-MEDIA_DIR = File.expand_path("tmp/media", __dir__)
-FileUtils.mkdir_p(MEDIA_DIR)
+# Local personas, as on the Prospect branch: no Cognito, so identity is a
+# header. The authenticator returns whatever object the app wants as its
+# current_user.
+Viewer = Struct.new(:sub, :name)
 
-dev_media = lambda do |env|
-  req = Rack::Request.new(env)
-  # path_info, not path: under `map` the latter still carries "/media". And
-  # unescaped, because a persona sub contains "|", which the browser percent-
-  # encodes — so the stored filename would never match.
-  key = Rack::Utils.unescape(req.path_info).sub(%r{\A/}, "")
+# Identity is extracted by middleware, not by the connector's authenticator,
+# for a reason worth recording: Foobara authenticates only commands that
+# declare `requires_authentication`, so a command that is PUBLIC but
+# viewer-aware never learns who is calling.
+#
+# That is the same optional-auth gap as API Gateway's JWT authorizer, one layer
+# up — and bookface has four such commands (a feed that marks your own posts
+# editable, your own reactions). Middleware always runs, so the command can
+# decide.
+#
+# The caller then reaches commands through a thread-local, which is a spike
+# shortcut: Foobara keeps the caller out of `execute` on purpose, and the
+# idiomatic answer is a request mutator injecting it as an input, the way the
+# auth demo's SetRefreshTokenFromCookie injects a token.
+class ExtractViewer
+  def initialize(app) = @app = app
 
-  case req.request_method
-  when "POST"
-    # Mimics a presigned S3 POST: the key travels in the form, not the path.
-    key = req.params["key"].to_s
-    return [400, {}, ["missing key"]] if key.empty?
-
-    file = req.params["file"]
-    bytes = file.respond_to?(:[]) ? file[:tempfile].read : file.to_s
-    path = File.join(MEDIA_DIR, key.tr("/", "_"))
-    File.binwrite(path, bytes)
-    [204, { "access-control-allow-origin" => "*" }, []]
-  when "GET"
-    path = File.join(MEDIA_DIR, key.tr("/", "_"))
-    return [404, {}, ["not found"]] unless File.exist?(path)
-
-    [200, { "content-type" => "image/jpeg" }, [File.binread(path)]]
-  when "OPTIONS"
-    [204, { "access-control-allow-origin" => "*",
-            "access-control-allow-headers" => "*",
-            "access-control-allow-methods" => "POST, GET, OPTIONS" }, []]
-  else
-    [405, {}, []]
+  def call(env)
+    sub = env["HTTP_X_DEV_SUB"]
+    Thread.current[:bookface_viewer] =
+      sub && Viewer.new(sub, env["HTTP_X_DEV_NAME"] || sub)
+    @app.call(env)
+  ensure
+    Thread.current[:bookface_viewer] = nil
   end
 end
 
-rpc = Prospect::RackApp.new(
-  Bookface::AppRouter,
-  # Warn by default; PROSPECT_SCHEMA_POLICY=reject to fail stale callers hard.
-  # Rejecting by default would break every browser holding a cached bundle the
-  # moment the contract changed.
-  on_schema_mismatch: ENV.fetch("PROSPECT_SCHEMA_POLICY", "warn").to_sym,
-  context_builder: lambda { |env|
-    headers = env.each_with_object({}) do |(k, v), acc|
-      acc[k.delete_prefix("HTTP_").split("_").map(&:capitalize).join("-")] = v if k.start_with?("HTTP_X_DEV")
-    end
-    Bookface::Context.from_dev_headers(headers)
-  }
-)
+connector = Foobara::CommandConnectors::Http::Rack.new
 
-run(Rack::Builder.app do
-  map("/media") { run dev_media }
-  run rpc
-end)
+# One line per deployment unit. A packaging step would generate exactly this,
+# with the domain chosen per unit.
+connector.connect(Posts)
+
+use ExtractViewer
+run connector

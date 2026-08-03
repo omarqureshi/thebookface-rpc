@@ -1,2 +1,7 @@
-eval_gemfile File.expand_path("../common.gemfile", __dir__)
-gem "aws-sdk-s3", "~> 1"   # destroy_with_thread! reaps attached images
+source "https://rubygems.org"
+gem "foobara"
+gem "foobara-rack-connector"
+gem "dynamoid", "~> 3.10"
+gem "aws-sdk-dynamodb", "~> 1"
+gem "cancancan", "~> 3.6"
+gem "aws-sdk-s3", "~> 1"
