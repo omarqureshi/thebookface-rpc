@@ -3,6 +3,7 @@ import { api, getUser, setUser, type DevUser } from "./api"
 import { Feed } from "./components/Feed"
 import { ProfilePage } from "./components/ProfilePage"
 import { Avatar } from "./components/Avatar"
+import { useRoute } from "./router"
 
 // Local personas. There is no Cognito locally, so identity is a header — see
 // bookface-rpc DESIGN.md §3. Deployed, this whole block becomes a redirect to
@@ -12,10 +13,8 @@ const PERSONAS: DevUser[] = [
   { sub: "dev|grace", name: "Grace Hopper" },
 ]
 
-type View = { name: "feed" } | { name: "profile" }
-
 export default function App() {
-  const [view, setView] = useState<View>({ name: "feed" })
+  const [route, navigate] = useRoute()
   const [, force] = useState(0)
   const [shownName, setShownName] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -39,7 +38,7 @@ export default function App() {
 
   const signIn = (u: DevUser | null) => {
     setUser(u)
-    setView({ name: "feed" })
+    navigate({ name: "feed" })
     force((n) => n + 1)
     loadProfile()
   }
@@ -48,7 +47,7 @@ export default function App() {
     <>
       <div className="topbar">
         <div className="topbar__inner">
-          <button className="brand" onClick={() => setView({ name: "feed" })}>
+          <button className="brand" onClick={() => navigate({ name: "feed" })}>
             <span className="brand__mark">B</span>
             <span className="brand__word">bookface</span>
           </button>
@@ -60,7 +59,7 @@ export default function App() {
               <button
                 className="topbar__me"
                 aria-label="My profile"
-                onClick={() => setView({ name: "profile" })}
+                onClick={() => navigate({ name: "profile" })}
               >
                 <Avatar name={shownName ?? me.name} url={avatarUrl} size="avatar--sm" />
                 <span className="topbar__name" data-testid="signed-in">
@@ -85,9 +84,10 @@ export default function App() {
       </div>
 
       <main className="page">
-        {view.name === "feed" && <Feed />}
-        {view.name === "profile" && (
-          <ProfilePage onDone={() => setView({ name: "feed" })} onSaved={loadProfile} />
+        {route.name === "profile" ? (
+          <ProfilePage onDone={() => navigate({ name: "feed" })} onSaved={loadProfile} />
+        ) : (
+          <Feed route={route} navigate={navigate} />
         )}
       </main>
     </>

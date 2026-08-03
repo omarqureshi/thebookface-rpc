@@ -4,13 +4,18 @@
 # here the controls are inline on the card, so every step scopes to the card
 # rather than navigating.
 
+# Clicking Edit changes the route (/posts/:id/edit), so React replaces the card
+# and any element held across that click goes stale. The form is also not
+# findable by body text any more — the body moves into a textarea, and Capybara's
+# `text` does not see field values.
+#
+# Only one post can be in edit mode, because the URL says which, so the fields
+# are unambiguous page-wide.
 When("I edit the post {string} to say {string}") do |old_body, new_body|
   visit "/" unless page.has_css?("[data-testid=post]", text: old_body, wait: 0)
-  within(post_card(old_body)) do
-    click_button "Edit"
-    fill_in "Edit post", with: new_body
-    click_button "Save"
-  end
+  post_card(old_body).click_button "Edit"
+  fill_in "Edit post", with: new_body
+  click_button "Save"
   expect(page).to have_content(new_body)
 end
 

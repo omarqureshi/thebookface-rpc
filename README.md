@@ -40,6 +40,25 @@ curl -X POST 'localhost:9292/rpc?batch=1' -H 'Content-Type: application/json' -d
 
 `GET /up` lists every registered procedure.
 
+### Routes
+
+State that changes what you see is in the URL, so reloads, the back button and
+links all work:
+
+```
+/                  the feed
+/posts/:id         feed with that post's thread expanded
+/posts/:id/edit    feed with that post in its edit form
+/profile           your profile
+```
+
+Paths mirror the Rails app's. Threads expand in place rather than navigating to
+a post page — the equivalent of the Turbo Frame the Rails view used — but the
+URL still changes, so a thread can be linked to.
+
+Deploying the built SPA needs a history fallback (serve `index.html` for unknown
+paths); Vite's dev server does this already.
+
 ## Frontend
 
 ```sh

@@ -6,6 +6,7 @@ import { Avatar } from "./Avatar"
 import { Reactions } from "./Reactions"
 import { Thread } from "./Thread"
 import { timeAgo } from "../time"
+import type { Route } from "../router"
 
 // The grid class encodes how many images there are, exactly as the Rails
 // partial did — one big, two side by side, three with a wide first.
@@ -36,19 +37,29 @@ export function Byline({ post }: { post: Pick<Post, "author" | "createdAt"> }) {
   )
 }
 
-function PostCard({ post, onChanged }: { post: Post; onChanged: () => void }) {
-  const [expanded, setExpanded] = useState(false)
+function PostCard({
+  post,
+  expanded,
+  editing,
+  navigate,
+  onChanged,
+}: {
+  post: Post
+  expanded: boolean
+  editing: boolean
+  navigate: (r: Route) => void
+  onChanged: () => void
+}) {
   const [count, setCount] = useState(post.commentCount)
-  const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(post.body ?? "")
   const [counts, setCounts] = useState(post.reactionCounts ?? {})
   const [error, setError] = useState<string | null>(null)
 
-  async function act(fn: () => Promise<unknown>) {
+  async function act(fn: () => Promise<unknown>, after: Route = { name: "feed" }) {
     setError(null)
     try {
       await fn()
-      setEditing(false)
+      navigate(after)
       onChanged()
     } catch (e) {
       setError(errorMessage(e))
@@ -74,7 +85,7 @@ function PostCard({ post, onChanged }: { post: Post; onChanged: () => void }) {
             onChange={(e) => setDraft(e.target.value)}
           />
           <div className="composer__actions">
-            <button className="btn btn--ghost btn--sm" onClick={() => setEditing(false)}>
+            <button className="btn btn--ghost btn--sm" onClick={() => navigate({ name: "feed" })}>
               Cancel
             </button>
             <button
@@ -113,13 +124,18 @@ function PostCard({ post, onChanged }: { post: Post; onChanged: () => void }) {
             className="post__comments-link"
             data-testid="open-comments"
             aria-expanded={expanded}
-            onClick={() => setExpanded((e) => !e)}
+            onClick={() =>
+              navigate(expanded ? { name: "feed" } : { name: "post", id: post.id })
+            }
           >
             {count} {count === 1 ? "comment" : "comments"}
           </button>
           {/* Server-computed, so Ability is never reimplemented here. */}
           {post.editable && !editing && (
-            <button className="owner-actions__link" onClick={() => setEditing(true)}>
+            <button
+              className="owner-actions__link"
+              onClick={() => navigate({ name: "editPost", id: post.id })}
+            >
               Edit
             </button>
           )}
@@ -144,7 +160,7 @@ function PostCard({ post, onChanged }: { post: Post; onChanged: () => void }) {
   )
 }
 
-export function Feed() {
+export function Feed({ route, navigate }: { route: Route; navigate: (r: Route) => void }) {
   const [posts, setPosts] = useState<Post[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -181,7 +197,14 @@ export function Feed() {
       {loading && <p className="empty">Loading…</p>}
       {!loading && posts.length === 0 && <p className="empty">Nothing here yet.</p>}
       {posts.map((p) => (
-        <PostCard key={p.id} post={p} onChanged={load} />
+        <PostCard
+          key={p.id}
+          post={p}
+          expanded={route.name === "post" && route.id === p.id}
+          editing={route.name === "editPost" && route.id === p.id}
+          navigate={navigate}
+          onChanged={load}
+        />
       ))}
       {cursor && (
         <button className="btn btn--ghost" onClick={more}>
