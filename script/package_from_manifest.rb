@@ -111,12 +111,30 @@ def handler_source(unit)
     #   skips authenticating entirely — so a public but viewer-aware command
     #   would otherwise never learn who is calling.
     #
-    # They read the same headers. Deployed, both would read the authorizer's
-    # verified claims instead.
+    # Both read the SAME source: the claims the Lambda authorizer verified. It
+    # already checked signature, exp, iss and aud, so nothing here re-verifies.
     module BookfaceAuth
       VIEWER = Struct.new(:sub, :name)
 
-      def self.viewer_from(env)
+      # Dev identity is OFF unless explicitly enabled, and the deployed stack
+      # never sets this. That matters: X-Dev-Sub is an unauthenticated header,
+      # so honouring it in a deployed unit would let anyone name themselves —
+      # including on the authenticated commands the authorizer just gated, and
+      # on the public-but-viewer-aware ones it lets through anonymously.
+      DEV_IDENTITY = ENV["BOOKFACE_DEV_IDENTITY"] == "1"
+
+      # API Gateway puts a SIMPLE-format authorizer's context here, and forwards
+      # only strings. The id token is what the SPA sends, so `name` and `email`
+      # are present; an access token would carry neither.
+      def self.viewer_from_claims(event)
+        claims = event.dig("requestContext", "authorizer", "lambda") || {}
+        sub = claims["sub"]
+        sub && VIEWER.new(sub, claims["name"] || claims["email"] || sub)
+      end
+
+      def self.viewer_from_dev(env)
+        return nil unless DEV_IDENTITY
+
         sub  = env["HTTP_X_DEV_SUB"]
         name = env["HTTP_X_DEV_NAME"]
         unless sub
@@ -131,7 +149,9 @@ def handler_source(unit)
     CONNECTOR = Foobara::CommandConnectors::Http::Rack.new(
       # instance_exec'd against the request, so this takes no argument and
       # `self` is the request itself.
-      authenticator: -> { BookfaceAuth.viewer_from(env) }
+      # Reads what the handler resolved, rather than resolving again: the
+      # claims live on the Lambda event, which a Rack env does not carry.
+      authenticator: -> { Thread.current[:bookface_viewer] }
     )
     #{unit[:domain]}.foobara_all_command.each do |command|
       CONNECTOR.connect(
@@ -156,9 +176,9 @@ def handler_source(unit)
 
       # Identity extraction has to be generated too: it is connector wiring, not
       # domain logic, and locally it lives in Rack middleware that a Lambda
-      # handler does not inherit. Deployed this would read the authorizer's
-      # claims rather than dev headers.
-      Thread.current[:bookface_viewer] = BookfaceAuth.viewer_from(env)
+      # handler does not inherit.
+      Thread.current[:bookface_viewer] =
+        BookfaceAuth.viewer_from_claims(event) || BookfaceAuth.viewer_from_dev(env)
 
       begin
         status, headers, body = CONNECTOR.call(env)

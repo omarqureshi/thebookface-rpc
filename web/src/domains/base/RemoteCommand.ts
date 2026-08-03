@@ -104,8 +104,16 @@ export default abstract class RemoteCommand<Inputs, Result, CommandError extends
     }
   }
 
+  // Added after generation — see script/generate_ts.rb.
+  static authTokenProvider: (() => Promise<string | null>) | null = null
+
   async _issueRequest (): Promise<Response> {
-    return await fetch(this._buildUrl(), this._buildRequestParams())
+    const params = this._buildRequestParams()
+    const token = await RemoteCommand.authTokenProvider?.()
+    if (token != null) {
+      (params.headers as Record<string, string>).Authorization = `Bearer ${token}`
+    }
+    return await fetch(this._buildUrl(), params)
   }
 
   castJsonResult (json: any): Result {

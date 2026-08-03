@@ -21,6 +21,7 @@ import { ToggleReaction } from "../domains/Reactions/ToggleReaction"
 import { GetProfile } from "../domains/Profiles/GetProfile"
 import { UpdateProfile } from "../domains/Profiles/UpdateProfile"
 import { Presign } from "../domains/Uploads/Presign"
+import { authConfig, idToken, identity } from "../auth"
 
 RemoteCommand.urlBase = ""
 
@@ -29,9 +30,19 @@ export interface DevUser {
   name: string
 }
 
-// Identity travels as a cookie, not a header: the generated SDK sends
-// `credentials: "include"` but exposes no hook for custom headers, and patching
-// generated code to add one would defeat the point of generating it.
+// Two identity schemes, chosen at runtime by whether the stack deployed a
+// config.json — so one bundle serves both.
+//
+//   deployed: a Cognito id token as a bearer, verified by the Lambda authorizer
+//   local:    a dev-persona cookie, which the deployed units refuse (they only
+//             honour X-Dev-* when BOOKFACE_DEV_IDENTITY=1, which the stack
+//             never sets)
+//
+// The cookie survived because the generated SDK had no header hook; it now has
+// one (see script/generate_ts.rb), but the cookie stays for local work because
+// picking a persona from a list beats a real OAuth round trip in cucumber.
+RemoteCommand.authTokenProvider = () => idToken()
+
 const STORAGE_KEY = "bookface.dev-user"
 
 function writeCookie(user: DevUser | null) {
@@ -68,7 +79,15 @@ export const setUser = (u: DevUser | null) => {
   }
 }
 
-export const getUser = () => currentUser
+// The signed-in Cognito user when deployed, the chosen persona locally. Every
+// caller wants "who is using this app", not "which scheme is in play".
+export const getUser = (): DevUser | null => {
+  if (authConfig()) {
+    const me = identity()
+    return me && { sub: me.sub, name: me.name }
+  }
+  return currentUser
+}
 
 export class RpcError<E = unknown> extends Error {
   constructor(readonly detail: E & { code: string }) {

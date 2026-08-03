@@ -4,10 +4,11 @@ import { Feed } from "./components/Feed"
 import { ProfilePage } from "./components/ProfilePage"
 import { Avatar } from "./components/Avatar"
 import { useRoute } from "./router"
+import { authConfig, signIn as cognitoSignIn, signOut as cognitoSignOut } from "./auth"
 
-// Local personas. There is no Cognito locally, so identity is a header — see
-// bookface-rpc DESIGN.md §3. Deployed, this whole block becomes a redirect to
-// the hosted UI and a bearer token.
+// Local personas, used only when the app is running without a deployed
+// config.json. Deployed, the same block becomes a redirect to the Cognito
+// hosted UI and a bearer token — see src/auth.ts.
 const PERSONAS: DevUser[] = [
   { sub: "dev|ada", name: "Ada Lovelace" },
   { sub: "dev|grace", name: "Grace Hopper" },
@@ -36,12 +37,17 @@ export default function App() {
 
   useEffect(loadProfile, [loadProfile])
 
-  const signIn = (u: DevUser | null) => {
+  const signInAs = (u: DevUser | null) => {
     setUser(u)
     navigate({ name: "feed" })
     force((n) => n + 1)
     loadProfile()
   }
+
+  // Deployed, logging out has to end the Cognito session too — clearing the
+  // token locally would leave the hosted UI signing you straight back in.
+  const cognito = authConfig()
+  const logOut = () => (cognito ? cognitoSignOut() : signInAs(null))
 
   return (
     <>
@@ -66,18 +72,30 @@ export default function App() {
                   Signed in as {shown_name ?? me.name}
                 </span>
               </button>
-              <button className="btn btn--ghost btn--sm" onClick={() => signIn(null)}>
+              <button className="btn btn--ghost btn--sm" onClick={logOut}>
                 Log out
               </button>
             </>
           ) : (
             <div className="signin">
-              <span className="signin__label">Sign in as</span>
-              {PERSONAS.map((p) => (
-                <button key={p.sub} className="btn btn--dev btn--sm" onClick={() => signIn(p)}>
-                  {p.name}
+              {cognito ? (
+                <button className="btn btn--primary btn--sm" onClick={() => void cognitoSignIn()}>
+                  Sign in with Google
                 </button>
-              ))}
+              ) : (
+                <>
+                  <span className="signin__label">Sign in as</span>
+                  {PERSONAS.map((p) => (
+                    <button
+                      key={p.sub}
+                      className="btn btn--dev btn--sm"
+                      onClick={() => signInAs(p)}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>

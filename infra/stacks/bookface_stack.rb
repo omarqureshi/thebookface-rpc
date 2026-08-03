@@ -56,6 +56,15 @@ class BookfaceStack < AWSCDK::Stack
   ZONE_ID   = ENV.fetch("BOOKFACE_ZONE_ID", "Z0430301186RRIJICRS18")
   ZONE_NAME = ENV.fetch("BOOKFACE_ZONE_NAME", "thebookface.net")
 
+  # The Rails app's pool, imported rather than recreated — it already carries the
+  # Google IdP and the hosted UI, and Google's own OAuth client is registered
+  # against that hosted-UI domain, not against this app's hostname.
+  USER_POOL_ID = ENV.fetch("BOOKFACE_USER_POOL_ID", "us-east-1_lz3Tif7pC")
+  HOSTED_UI    = ENV.fetch(
+    "BOOKFACE_COGNITO_DOMAIN",
+    "https://the-bookface-staging-339713138084.auth.us-east-1.amazoncognito.com"
+  )
+
   # `stage` is a separate keyword rather than a props key: AWSCDK::StackProps is
   # strict and rejects unknown keys, so app config cannot ride along inside it.
   def initialize(scope, id, props = nil, stage: "staging")
@@ -83,8 +92,40 @@ class BookfaceStack < AWSCDK::Stack
     # invoked, so no unit carries OmniAuth or a session secret. Foobara's
     # `requires_authentication` is the in-process gate; this is the edge one,
     # and both are fed by the same manifest field.
-    pool   = AWSCDK::Cognito::UserPool.new(self, "Users", { self_sign_up_enabled: false })
-    client = pool.add_client("Web", { generate_secret: false })
+    #
+    # The pool is IMPORTED, not created. It belongs to TheBookface-staging,
+    # which configured the Google IdP and the hosted UI on it — recreating
+    # either here would mean a second Google OAuth client and a second hosted-UI
+    # domain for the same users. Importing also means this stack never mutates
+    # the pool: it only adds a client of its own.
+    pool = AWSCDK::Cognito::UserPool.from_user_pool_id(self, "Users", USER_POOL_ID)
+
+    # Our own app client rather than the Rails one. That client is a
+    # confidential client whose callback is a Rails route
+    # (/auth/cognito/callback) whichhandles the exchange server-side; a static
+    # SPA has nowhere to keep a secret, so it needs a PUBLIC client using
+    # Authorization Code + PKCE, with the callback pointing at the SPA itself.
+    #
+    # Adding a client does not touch the Rails client, so both apps can use the
+    # same pool and the same Google identities at once.
+    client = pool.add_client("WebSpa", {
+      generate_secret: false,
+      # `.GOOGLE` not `::GOOGLE`: in these bindings a static PROPERTY is a method
+      # call, while a true enum member is a constant. Same for OAuthScope below.
+      supported_identity_providers: [
+        AWSCDK::Cognito::UserPoolClientIdentityProvider.GOOGLE
+      ],
+      o_auth: {
+        flows: { authorization_code_grant: true },
+        scopes: [
+          AWSCDK::Cognito::OAuthScope.OPENID,
+          AWSCDK::Cognito::OAuthScope.EMAIL,
+          AWSCDK::Cognito::OAuthScope.PROFILE
+        ],
+        callback_urls: oauth_urls,
+        logout_urls: oauth_urls
+      }
+    })
 
     environment = {
       "BOOKFACE_ENV"    => stage,
@@ -127,10 +168,11 @@ class BookfaceStack < AWSCDK::Stack
     media.grant_put(function("uploads"))
     media.grant_delete(function("posts"))                # reap on delete
 
-    site = deploy_site
+    site = deploy_site(client)
 
     AWSCDK::CfnOutput.new(self, "ApiUrl", { value: @api.url })
-    AWSCDK::CfnOutput.new(self, "SiteUrl", { value: "https://#{site.distribution_domain_name}" })
+    AWSCDK::CfnOutput.new(self, "SiteUrl",
+                          { value: DOMAIN ? "https://#{DOMAIN}" : "https://#{site.distribution_domain_name}" })
     AWSCDK::CfnOutput.new(self, "UserPoolId", { value: pool.user_pool_id })
     AWSCDK::CfnOutput.new(self, "UserPoolClientId", { value: client.user_pool_client_id })
   end
@@ -196,7 +238,11 @@ class BookfaceStack < AWSCDK::Stack
       memory_size: 512,
       timeout: AWSCDK::Duration.seconds(10),
       environment: {
-        "PROSPECT_ISSUER"   => pool.user_pool_provider_url,
+        # Built from the pool id rather than read off the construct: an
+        # IMPORTED pool exposes user_pool_id but not user_pool_provider_url.
+        # This is the same string the Rails stack passes its app as
+        # COGNITO_ISSUER, and what the tokens actually carry in `iss`.
+        "PROSPECT_ISSUER"   => "https://cognito-idp.#{region}.amazonaws.com/#{USER_POOL_ID}",
         "PROSPECT_AUDIENCE" => client.user_pool_client_id,
         # Derived from the manifest's requires_authentication, via units.json.
         # There is no hand-maintained list of public commands anywhere in this
@@ -231,7 +277,7 @@ class BookfaceStack < AWSCDK::Stack
   # Assets must be built first, the same way Lambda artifacts must be:
   #
   #   cd web && npm run build
-  def deploy_site
+  def deploy_site(client)
     bucket = AWSCDK::S3::Bucket.new(self, "Site", {
       removal_policy: AWSCDK::RemovalPolicy::DESTROY,
       auto_delete_objects: true
@@ -312,12 +358,28 @@ class BookfaceStack < AWSCDK::Stack
     dist = File.expand_path("../../web/dist", __dir__)
     if Dir.exist?(dist)
       AWSCDK::S3Deployment::BucketDeployment.new(self, "SiteAssets", {
-        sources: [AWSCDK::S3Deployment::Source.asset(dist)],
+        sources: [
+          AWSCDK::S3Deployment::Source.asset(dist),
+          # Deploy-time config rather than build-time. The client id is only
+          # known once this stack has synthesised, and baking it into the bundle
+          # would mean a different bundle per environment — the same reason the
+          # API is same-origin at /run/* instead of an absolute URL.
+          #
+          # None of this is secret: a public OIDC client is identified, not
+          # authenticated. What stops someone else's app using it is Cognito's
+          # callback-URL allowlist.
+          AWSCDK::S3Deployment::Source.json_data("config.json", {
+            "userPoolId" => USER_POOL_ID,
+            "clientId"   => client.user_pool_client_id,
+            "hostedUi"   => HOSTED_UI
+          })
+        ],
         destination_bucket: bucket,
         distribution: distribution,
         # index.html must never be cached, or a deploy leaves browsers holding a
-        # bundle that references hashed assets which no longer exist.
-        distribution_paths: ["/index.html", "/"]
+        # bundle that references hashed assets which no longer exist. config.json
+        # likewise, or a client-id change would not reach a returning browser.
+        distribution_paths: ["/index.html", "/", "/config.json"]
       })
     else
       AWSCDK::Annotations.of(self).add_warning(
@@ -326,6 +388,14 @@ class BookfaceStack < AWSCDK::Stack
     end
 
     distribution
+  end
+
+  # Where Cognito is allowed to send the browser back to. The deployed origin,
+  # plus the Vite dev server so the real flow can be exercised locally against
+  # the same pool — neither is a secret, and an unregistered redirect_uri is
+  # refused by Cognito, which is what makes the list the security boundary.
+  def oauth_urls
+    ["https://#{DOMAIN || 'staging.thebookface.net'}/", "http://localhost:5173/"]
   end
 
   def domain_zone

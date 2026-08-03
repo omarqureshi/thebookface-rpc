@@ -89,6 +89,38 @@ if outcome.success?
     puts "patched RemoteCommand#dirtyQueries (no-op)"
   end
 
+  # Third patch. The generated SDK has no hook for an Authorization header —
+  # the upstream assumption is that Foobara::Auth's RequiresAuthCommand supplies
+  # one, which is the same assumption that broke the first patch above.
+  #
+  # It goes on the BASE class, not on RequiresAuthCommand: the commands that are
+  # public but viewer-aware (ListPosts marking your own posts editable,
+  # MyReactions) extend RemoteCommand directly, and they need the token too or a
+  # signed-in caller looks anonymous to them.
+  #
+  # _issueRequest rather than _buildRequestParams because the provider is async:
+  # it may have to refresh an expired token before the request goes out.
+  unless remote.include?("authTokenProvider")
+    remote = remote.sub(
+      "  async _issueRequest (): Promise<Response> {\n" \
+      "    return await fetch(this._buildUrl(), this._buildRequestParams())\n" \
+      "  }",
+      "  // Added after generation — see script/generate_ts.rb.\n" \
+      "  static authTokenProvider: (() => Promise<string | null>) | null = null\n" \
+      "\n" \
+      "  async _issueRequest (): Promise<Response> {\n" \
+      "    const params = this._buildRequestParams()\n" \
+      "    const token = await RemoteCommand.authTokenProvider?.()\n" \
+      "    if (token != null) {\n" \
+      "      (params.headers as Record<string, string>).Authorization = `Bearer ${token}`\n" \
+      "    }\n" \
+      "    return await fetch(this._buildUrl(), params)\n" \
+      "  }"
+    )
+    File.write(remote_path, remote)
+    puts "patched RemoteCommand._issueRequest (bearer token hook)"
+  end
+
   puts "generated #{outcome.result.inspect}"
 else
   puts "FAILED: #{outcome.errors_hash}"
