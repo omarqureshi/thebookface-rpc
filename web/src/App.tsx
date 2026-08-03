@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { api, getUser, setUser, type DevUser } from "./api"
 import { Feed } from "./components/Feed"
-import { PostView } from "./components/PostView"
 import { ProfilePage } from "./components/ProfilePage"
 import { Avatar } from "./components/Avatar"
 
@@ -13,7 +12,7 @@ const PERSONAS: DevUser[] = [
   { sub: "dev|grace", name: "Grace Hopper" },
 ]
 
-type View = { name: "feed" } | { name: "post"; id: string } | { name: "profile" }
+type View = { name: "feed" } | { name: "profile" }
 
 export default function App() {
   const [view, setView] = useState<View>({ name: "feed" })
@@ -86,8 +85,7 @@ export default function App() {
       </div>
 
       <main className="page">
-        {view.name === "feed" && <Feed onOpen={(id) => setView({ name: "post", id })} />}
-        {view.name === "post" && <PostView id={view.id} onBack={() => setView({ name: "feed" })} />}
+        {view.name === "feed" && <Feed />}
         {view.name === "profile" && (
           <ProfilePage onDone={() => setView({ name: "feed" })} onSaved={loadProfile} />
         )}

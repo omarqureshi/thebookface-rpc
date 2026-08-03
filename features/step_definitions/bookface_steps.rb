@@ -90,10 +90,20 @@ When("I open the feed") do
   visit "/"
 end
 
+# Expands the thread in place rather than navigating — the Rails view did the
+# same with a Turbo Frame. @post_body remembers which card, since the feed can
+# show several and each has its own reactions bar and comment box.
 When("I open the post {string}") do |body|
   visit "/" unless page.has_css?("[data-testid=post]", text: body, wait: 0)
-  within(post_card(body)) { find("[data-testid=open-comments]").click }
-  expect(page).to have_content(body)
+  @post_body = body
+  card = post_card(body)
+  card.find("[data-testid=open-comments]").click unless card["aria-expanded"] == "true"
+  expect(card).to have_css("[data-testid=comment], .comment-form")
+end
+
+# The card currently expanded, for steps that act "on the post".
+def current_post_card
+  post_card(@post_body || raise("no post opened yet"))
 end
 
 # --- posting ---------------------------------------------------------------

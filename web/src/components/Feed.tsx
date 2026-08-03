@@ -4,6 +4,7 @@ import type { Post } from "../api/schema"
 import { Composer, errorMessage } from "./Composer"
 import { Avatar } from "./Avatar"
 import { Reactions } from "./Reactions"
+import { Thread } from "./Thread"
 import { timeAgo } from "../time"
 
 // The grid class encodes how many images there are, exactly as the Rails
@@ -35,15 +36,9 @@ export function Byline({ post }: { post: Pick<Post, "author" | "createdAt"> }) {
   )
 }
 
-function PostCard({
-  post,
-  onOpen,
-  onChanged,
-}: {
-  post: Post
-  onOpen: (id: string) => void
-  onChanged: () => void
-}) {
+function PostCard({ post, onChanged }: { post: Post; onChanged: () => void }) {
+  const [expanded, setExpanded] = useState(false)
+  const [count, setCount] = useState(post.commentCount)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(post.body ?? "")
   const [counts, setCounts] = useState(post.reactionCounts ?? {})
@@ -108,13 +103,19 @@ function PostCard({
         counts={counts}
         mine={null}
         onChanged={(c) => setCounts(c)}
-        testId={`reactions-feed-${post.id}`}
       />
 
       <div className="post__foot">
         <div className="owner-actions owner-actions--inline">
-          <button className="post__comments-link" data-testid="open-comments" onClick={() => onOpen(post.id)}>
-            {post.commentCount} {post.commentCount === 1 ? "comment" : "comments"}
+          {/* Expands the thread in place rather than navigating, as the Rails
+              view's Turbo Frame did. */}
+          <button
+            className="post__comments-link"
+            data-testid="open-comments"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((e) => !e)}
+          >
+            {count} {count === 1 ? "comment" : "comments"}
           </button>
           {/* Server-computed, so Ability is never reimplemented here. */}
           {post.editable && !editing && (
@@ -131,12 +132,19 @@ function PostCard({
             </button>
           )}
         </div>
+
+        {expanded && (
+          <Thread
+            postId={post.id}
+            onCountChanged={(n) => setCount(n)}
+          />
+        )}
       </div>
     </article>
   )
 }
 
-export function Feed({ onOpen }: { onOpen: (id: string) => void }) {
+export function Feed() {
   const [posts, setPosts] = useState<Post[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -173,7 +181,7 @@ export function Feed({ onOpen }: { onOpen: (id: string) => void }) {
       {loading && <p className="empty">Loading…</p>}
       {!loading && posts.length === 0 && <p className="empty">Nothing here yet.</p>}
       {posts.map((p) => (
-        <PostCard key={p.id} post={p} onOpen={onOpen} onChanged={load} />
+        <PostCard key={p.id} post={p} onChanged={load} />
       ))}
       {cursor && (
         <button className="btn btn--ghost" onClick={more}>

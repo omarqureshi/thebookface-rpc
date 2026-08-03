@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from "react"
 import { api, getUser } from "../api"
-import type { Comment, Post } from "../api/schema"
+import type { Comment } from "../api/schema"
 import { Reactions } from "./Reactions"
 import { errorMessage } from "./Composer"
 import { Avatar } from "./Avatar"
-import { Byline, Media } from "./Feed"
 import { timeAgo } from "../time"
 
 function CommentNode({
@@ -153,30 +152,37 @@ function CommentNode({
   )
 }
 
-export function PostView({ id, onBack }: { id: string; onBack: () => void }) {
-  const [post, setPost] = useState<Post | null>(null)
-  const [thread, setThread] = useState<Comment[]>([])
+// The thread, loaded on demand and rendered inside the post's footer — the
+// equivalent of the Rails app's Turbo Frame, which swapped the "N comments"
+// link for the thread in place rather than navigating.
+//
+// Two procedures across two services, issued together so the client coalesces
+// them into one POST /rpc?batch=1. Deployed that single request fans out to two
+// Lambdas; expanding a thread costs one round trip either way.
+export function Thread({
+  postId,
+  onCountChanged,
+}: {
+  postId: string
+  onCountChanged?: (n: number) => void
+}) {
+  const [comments, setComments] = useState<Comment[] | null>(null)
   const [mine, setMine] = useState<Record<string, string>>({})
   const [draft, setDraft] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [missing, setMissing] = useState(false)
 
-  // Three procedures across three services, issued together so the client
-  // coalesces them into ONE POST /rpc?batch=1. Deployed, that single request
-  // fans out to three Lambdas.
   const load = useCallback(() => {
-    Promise.all([
-      api.posts.get({ id }),
-      api.comments.thread({ postId: id }),
-      api.reactions.mine({ postId: id }),
-    ])
-      .then(([p, t, m]) => {
-        setPost(p)
-        setThread(t.comments)
+    Promise.all([api.comments.thread({ postId }), api.reactions.mine({ postId })]).then(
+      ([t, m]) => {
+        setComments(t.comments)
         setMine(m.byTarget ?? {})
-      })
-      .catch(() => setMissing(true))
-  }, [id])
+        onCountChanged?.(t.comments.length)
+      },
+    )
+    // onCountChanged is a fresh closure each render; depending on it would
+    // reload the thread forever.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId])
 
   useEffect(load, [load])
 
@@ -184,7 +190,7 @@ export function PostView({ id, onBack }: { id: string; onBack: () => void }) {
     if (!draft.trim()) return
     setError(null)
     try {
-      await api.comments.create({ postId: id, body: draft, parentPath: null })
+      await api.comments.create({ postId, body: draft, parentPath: null })
       setDraft("")
       load()
     } catch (e) {
@@ -192,63 +198,37 @@ export function PostView({ id, onBack }: { id: string; onBack: () => void }) {
     }
   }
 
-  if (missing) return <p className="empty">That post no longer exists.</p>
-  if (!post) return <p className="empty">Loading…</p>
+  if (!comments) return <p className="empty">Loading…</p>
 
   return (
-    <div className="feed">
-      <button className="backlink" onClick={onBack}>
-        ← Back to feed
-      </button>
+    <>
+      <div className="thread__list">
+        {comments.map((c) => (
+          <CommentNode key={c.path} comment={c} postId={postId} mine={mine} onChanged={load} />
+        ))}
+      </div>
 
-      <article className="card post" data-testid="post">
-        <Byline post={post} />
-        <div className="post__body">
-          <p>{post.body}</p>
-        </div>
-        <Media post={post} />
-        <Reactions
-          postId={id}
-          target="post"
-          counts={post.reactionCounts ?? {}}
-          mine={mine["post"] ?? null}
-          onChanged={(counts) => setPost({ ...post, reactionCounts: counts })}
-        />
-
-        <div className="post__foot">
-          <h2 className="thread__title" data-testid="comment-count">
-            {thread.length} {thread.length === 1 ? "comment" : "comments"}
-          </h2>
-
-          <div className="thread__list">
-            {thread.map((c) => (
-              <CommentNode key={c.path} comment={c} postId={id} mine={mine} onChanged={load} />
-            ))}
-          </div>
-
-          {getUser() && (
-            <div className="comment-form">
-              {error && (
-                <div className="field-errors" role="alert">
-                  {error}
-                </div>
-              )}
-              <textarea
-                className="comment-form__input"
-                aria-label="Add a comment"
-                placeholder="Write a comment…"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-              />
-              <div className="composer__actions">
-                <button className="btn btn--primary btn--sm" onClick={comment}>
-                  Comment
-                </button>
-              </div>
+      {getUser() && (
+        <div className="comment-form">
+          {error && (
+            <div className="field-errors" role="alert">
+              {error}
             </div>
           )}
+          <textarea
+            className="comment-form__input"
+            aria-label="Add a comment"
+            placeholder="Write a comment…"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+          />
+          <div className="composer__actions">
+            <button className="btn btn--primary btn--sm" onClick={comment}>
+              Comment
+            </button>
+          </div>
         </div>
-      </article>
-    </div>
+      )}
+    </>
   )
 }
