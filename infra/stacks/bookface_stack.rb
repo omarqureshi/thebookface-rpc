@@ -42,6 +42,20 @@ class BookfaceStack < AWSCDK::Stack
   }.freeze
   DEFAULT_SIZING = { memory_size: 1024, timeout_seconds: 10 }.freeze
 
+  # Custom domain, optional — the stack synthesises without one and serves on the
+  # generated CloudFront name. Set BOOKFACE_DOMAIN to claim a hostname.
+  #
+  # Only the SITE gets a domain, not the API: the API is already behind the same
+  # distribution at /run/*, which is what makes the client same-origin and lets
+  # the bundle ship with no environment-specific URL in it. A separate API
+  # Gateway custom domain would undo that.
+  DOMAIN = ENV.fetch("BOOKFACE_DOMAIN", nil)
+  # Looked up by attributes rather than HostedZone.from_lookup: a lookup needs
+  # AWS credentials at synth time, which makes `cdk synth` non-deterministic and
+  # breaks it offline and in CI.
+  ZONE_ID   = ENV.fetch("BOOKFACE_ZONE_ID", "Z0430301186RRIJICRS18")
+  ZONE_NAME = ENV.fetch("BOOKFACE_ZONE_NAME", "thebookface.net")
+
   # `stage` is a separate keyword rather than a props key: AWSCDK::StackProps is
   # strict and rejects unknown keys, so app config cannot ride along inside it.
   def initialize(scope, id, props = nil, stage: "staging")
@@ -227,7 +241,19 @@ class BookfaceStack < AWSCDK::Stack
     # CloudFront wants the bare host.
     api_domain = AWSCDK::Fn.select(2, AWSCDK::Fn.split("/", @api.url))
 
-    distribution = AWSCDK::CloudFront::Distribution.new(self, "SiteCdn", {
+    zone = domain_zone
+    # us-east-1 is not a choice here: CloudFront only accepts certificates from
+    # that region. This stack happens to deploy there anyway; from any other
+    # region the cert would need a us-east-1 sub-stack.
+    certificate =
+      if zone
+        AWSCDK::CertificateManager::Certificate.new(self, "SiteCert", {
+          domain_name: DOMAIN,
+          validation: AWSCDK::CertificateManager::CertificateValidation.from_dns(zone)
+        })
+      end
+
+    props = {
       default_root_object: "index.html",
 
       default_behavior: {
@@ -262,7 +288,26 @@ class BookfaceStack < AWSCDK::Stack
         { http_status: 404, response_http_status: 200,
           response_page_path: "/index.html", ttl: AWSCDK::Duration.seconds(0) }
       ]
-    })
+    }
+
+    if certificate
+      props[:domain_names] = [DOMAIN]
+      props[:certificate]  = certificate
+    end
+
+    distribution = AWSCDK::CloudFront::Distribution.new(self, "SiteCdn", props)
+
+    if zone
+      # A and AAAA both: CloudFront answers on IPv6, and a browser on an
+      # IPv6-only network that finds only an A record never reaches it.
+      target = AWSCDK::Route53::RecordTarget.from_alias(
+        AWSCDK::Route53Targets::CloudFrontTarget.new(distribution)
+      )
+      AWSCDK::Route53::ARecord.new(self, "SiteAlias",
+                                   { zone: zone, record_name: DOMAIN, target: target })
+      AWSCDK::Route53::AaaaRecord.new(self, "SiteAliasV6",
+                                      { zone: zone, record_name: DOMAIN, target: target })
+    end
 
     dist = File.expand_path("../../web/dist", __dir__)
     if Dir.exist?(dist)
@@ -281,6 +326,14 @@ class BookfaceStack < AWSCDK::Stack
     end
 
     distribution
+  end
+
+  def domain_zone
+    return nil unless DOMAIN
+
+    AWSCDK::Route53::HostedZone.from_hosted_zone_attributes(
+      self, "Zone", { hosted_zone_id: ZONE_ID, zone_name: ZONE_NAME }
+    )
   end
 
   def table(id:, partition:, sort: nil)
