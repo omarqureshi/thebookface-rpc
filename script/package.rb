@@ -13,6 +13,7 @@ plan = Prospect::Package.plan(
   out: File.join(ROOT, "build"),
   sources: %w[app config],
   granularity: :per_router,
+  authorizer: true,
   # prospect is a path gem during development, and lives outside this app.
   # Once it's published this mount disappears.
   mounts: [File.expand_path("../../prospect", ROOT)]

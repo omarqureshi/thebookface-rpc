@@ -1,0 +1,8 @@
+# The optional-auth Lambda authorizer. Deliberately NOT eval_gemfile'ing
+# common.gemfile: it serves no procedures and needs none of the app's stack —
+# no Dynamoid, no CanCanCan, no Sorbet. Keeping it minimal keeps its cold start
+# off the critical path of every authenticated request.
+source "https://rubygems.org"
+
+gem "prospect", path: File.expand_path("../../../prospect", __dir__)
+gem "jwt", "~> 3.1"

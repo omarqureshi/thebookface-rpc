@@ -60,18 +60,17 @@ class BookfaceStack < AWSCDK::Stack
       defaults: { memory_size: 1024, timeout_seconds: 10 },
 
       authorizer: {
-        kind:     :jwt,
+        # :lambda, not :jwt. An API Gateway JWT authorizer cannot express
+        # optional auth: a route without one receives no verified claims at all,
+        # so `posts.get` would report editable: false even for the author and
+        # `reactions.mine` would always be empty. The Lambda authorizer decides
+        # per procedure from rawPath, which also lets routes stay greedy.
+        kind:     :lambda,
         issuer:   pool.user_pool_provider_url,
         audience: [client.user_pool_client_id],
         # Public reads, matching Ability's `can :read, [Post, Comment]`.
         #
-        # CAVEAT (Prospect §6): an API Gateway JWT authorizer is all-or-nothing,
-        # so these four routes receive NO verified claims even when the caller is
-        # signed in. `posts.get` will report editable/deletable false, and
-        # `reactions.mine` will return empty, for everyone. Fixing that needs a
-        # Lambda authorizer that allows anonymous through while attaching claims
-        # when present — not yet built. Listed here so the gap is visible in the
-        # stack rather than only in a design doc.
+        # Public, but still viewer-aware when a token is present.
         anonymous: %w[posts.feed posts.get comments.thread reactions.mine]
       },
 

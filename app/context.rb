@@ -31,11 +31,23 @@ module Bookface
     const :viewer, T.nilable(Viewer)
 
     class << self
-      # API Gateway v2 JWT authorizer payload:
-      #   event["requestContext"]["authorizer"]["jwt"]["claims"]
+      # Two shapes, depending on which authorizer is configured:
+      #
+      #   JWT authorizer     -> requestContext.authorizer.jwt.claims
+      #   Lambda authorizer  -> requestContext.authorizer.lambda   (SIMPLE format)
+      #
+      # We use the Lambda one, because only it can express optional auth — a
+      # public procedure that still knows who you are when you are signed in.
+      # A JWT authorizer would leave `posts.get` reporting editable: false for
+      # authors and `reactions.mine` empty for everyone.
       def from_event(event)
-        claims = event.dig("requestContext", "authorizer", "jwt", "claims")
-        new(viewer: claims && viewer_from(claims))
+        auth = event.dig("requestContext", "authorizer") || {}
+        claims = auth["lambda"] || auth.dig("jwt", "claims")
+        # An anonymous caller reaches us with an empty context, not a missing
+        # one — that is the point of the optional-auth authorizer.
+        return new(viewer: nil) if claims.nil? || claims["sub"].to_s.empty?
+
+        new(viewer: viewer_from(claims))
       end
 
       # Local Rack transport has no authorizer in front of it, so dev/test inject
