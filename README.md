@@ -56,8 +56,28 @@ Paths mirror the Rails app's. Threads expand in place rather than navigating to
 a post page — the equivalent of the Turbo Frame the Rails view used — but the
 URL still changes, so a thread can be linked to.
 
-Deploying the built SPA needs a history fallback (serve `index.html` for unknown
-paths); Vite's dev server does this already.
+Vite's dev server serves `index.html` for unknown paths already. Deployed, the
+CloudFront distribution does it — see `infra/stacks/bookface_stack.rb`.
+
+## Deploying
+
+```sh
+bundle exec ruby script/package.rb    # Lambda artifacts
+cd web && npm run build               # SPA into web/dist
+cd infra && bundle exec cdk deploy
+```
+
+The SPA sits on S3 behind CloudFront, and **the API is on the same distribution
+at `/rpc/*`**. That is not a detail: it makes the client same-origin, so there is
+no CORS and no preflight — which matters because every request carries
+`X-Prospect-Schema`, a custom header that would otherwise make each one
+non-simple. It also means `createClient({ url: "/rpc" })` needs no build-time
+configuration, so the bundle is identical in every environment. The local Vite
+proxy points `/rpc` at the API for the same reason: dev and production agree.
+
+CloudFront rewrites 403 and 404 to `/index.html` with a 200, which is what makes
+`/posts/:id` survive a cold load or a refresh. S3 answers 403 rather than 404 for
+a missing key when access is via OAC, so both are needed.
 
 ## Frontend
 
