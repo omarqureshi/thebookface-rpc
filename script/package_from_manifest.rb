@@ -52,9 +52,48 @@ units = app_commands.group_by { |_, c| c["domain"] }.map do |domain, cmds|
     public: cmds.reject { |_, c| c["requires_authentication"] }.map(&:first) }
 end
 
+MOUNT = "/run"
+
+# The authorizer is a deployment unit but not a domain unit: it serves no
+# commands and needs none of the app's code, only prospect and jwt (see
+# units/authorizer.gemfile). It is the one piece of Prospect that survives this
+# branch intact, because optional auth is a property of API Gateway, not of
+# whatever framework sits behind it.
+AUTHORIZER = "authorizer"
+
+# Prospect::Authorizer derives a procedure id from rawPath by splitting after
+# the mount and joining with "." — so /run/Posts/ListPosts becomes
+# "Posts.ListPosts". Same list as each unit's `public`, flattened, and still
+# derived from requires_authentication rather than maintained by hand.
+anonymous = units.flat_map { |u| u[:public] }.map { |name| name.tr(":", ".").squeeze(".") }.sort
+
 # --- one handler per unit ----------------------------------------------------
 # `connect(Domain)` is what makes a unit a subset: the other domains are never
 # registered, so there is nothing to refuse.
+def authorizer_source
+  <<~RUBY
+    # Generated from the Foobara manifest. Do not edit.
+    #
+    # Optional-auth Lambda authorizer, unchanged from the Prospect branch: it
+    # verifies a token when one is present and lets anonymous callers through
+    # on the commands the manifest says do not require authentication.
+    # Configuration arrives from the environment the stack sets.
+    require_relative "vendor/bundle/bundler/setup"
+    require "prospect/authorizer"
+
+    HANDLER = Prospect::Authorizer.handler(
+      issuer:    ENV.fetch("PROSPECT_ISSUER"),
+      audience:  ENV.fetch("PROSPECT_AUDIENCE", "").split(","),
+      anonymous: ENV.fetch("PROSPECT_ANONYMOUS", "").split(","),
+      mount:     ENV.fetch("PROSPECT_MOUNT", "/run")
+    )
+
+    def handle(event:, context:)
+      HANDLER.call(event, context)
+    end
+  RUBY
+end
+
 def handler_source(unit)
   <<~RUBY
     # Generated from the Foobara manifest. Do not edit.
@@ -131,12 +170,37 @@ def handler_source(unit)
   RUBY
 end
 
+# Only the authorizer needs this, and only because prospect is a private gem.
+def github_packages_credential
+  from_env = ENV["BUNDLE_RUBYGEMS__PKG__GITHUB__COM"]
+  return from_env if from_env && !from_env.empty?
+
+  # Bundler.settings, NOT `bundle config get` — the CLI redacts credentials in
+  # its output, so parsing it yields the literal "user:[REDACTED]" and the
+  # build fails complaining the brackets need CGI escaping.
+  require "bundler"
+  configured = Bundler.settings["rubygems.pkg.github.com"].to_s
+  return configured unless configured.empty?
+
+  abort <<~MSG
+    No credential for rubygems.pkg.github.com, needed to fetch the prospect gem
+    (for Prospect::Authorizer) inside the build container. Set one with:
+
+      bundle config set --global rubygems.pkg.github.com USER:TOKEN
+  MSG
+end
+
 FileUtils.mkdir_p(OUT)
-units.each do |unit|
+(units + [{ name: AUTHORIZER, commands: [], route: nil, public: [] }]).each do |unit|
+  authorizer = unit[:name] == AUTHORIZER
+
   dir = File.join(OUT, unit[:name])
   FileUtils.rm_rf(dir); FileUtils.mkdir_p(dir)
-  %w[app config].each { |s| FileUtils.cp_r(File.join(ROOT, s), dir) }
-  File.write(File.join(dir, "handler.rb"), handler_source(unit))
+  # The authorizer gets no app code: it verifies a token and answers yes or no,
+  # so Dynamoid and the domains would be dead weight on the cold start of every
+  # authenticated request.
+  %w[app config].each { |s| FileUtils.cp_r(File.join(ROOT, s), dir) } unless authorizer
+  File.write(File.join(dir, "handler.rb"), authorizer ? authorizer_source : handler_source(unit))
 
   gemfile = File.join(ROOT, "units", "#{unit[:name]}.gemfile")
   abort "no gemfile for unit #{unit[:name]}" unless File.exist?(gemfile)
@@ -146,6 +210,9 @@ units.each do |unit|
     FileUtils.mkdir_p(vendor)
     ok = system("docker", "run", "--rm", "--platform", "linux/amd64",
                 "--user", "#{Process.uid}:#{Process.gid}", "-e", "HOME=/tmp",
+                # The authorizer's gemfile fetches prospect from GitHub
+                # Packages, and the container inherits nothing from the host.
+                "-e", "BUNDLE_RUBYGEMS__PKG__GITHUB__COM=#{github_packages_credential}",
                 "-v", "#{ROOT}:#{ROOT}", "-v", "#{vendor}:/vendor", "-w", ROOT,
                 "--entrypoint", "bash", IMAGE, "-c",
                 "set -e; export BUNDLE_GEMFILE=#{gemfile} BUNDLE_PATH=/vendor; " \
@@ -155,6 +222,20 @@ units.each do |unit|
   FileUtils.mkdir_p(File.join(dir, "vendor"))
   FileUtils.cp_r(vendor, File.join(dir, "vendor/bundle"))
 
-  puts "built #{unit[:name]}: #{unit[:commands].length} commands, route #{unit[:route]}, " \
+  puts "built #{unit[:name]}: #{unit[:commands].length} commands, route #{unit[:route] || '-'}, " \
        "public #{unit[:public].length}"
 end
+
+# --- the contract between packaging and synthesis ----------------------------
+# The stack reads THIS, not the manifest: it makes the deployed topology a
+# function of the artifacts that were actually built, so `cdk synth` can never
+# create a route to a Lambda whose code is missing — and synthesis needs no
+# running server, no app bundle and no Foobara.
+#
+# Everything in it is derived from the manifest except `mount`.
+File.write(File.join(OUT, "units.json"), JSON.pretty_generate(
+  "mount" => MOUNT,
+  "anonymous" => anonymous,
+  "units" => units.map { |u| u.transform_keys(&:to_s) }
+))
+puts "wrote #{File.join(OUT, 'units.json')}: #{units.length} units, #{anonymous.length} public commands"

@@ -1,11 +1,9 @@
 source "https://rubygems.org"
 
-source "https://rubygems.pkg.github.com/omarqureshi" do
-  gem "prospect", "~> 0.0.2"
-end
-gem "dynamoid", "~> 3.10"
-gem "aws-sdk-dynamodb", "~> 1"
-gem "cancancan", "~> 3.6"
+# No prospect and no app gems: this stack reads build/units.json, so synthesis
+# needs neither Prospect's IR nor Foobara nor Dynamoid. (Prospect::Authorizer is
+# still deployed, but it is fetched inside the authorizer unit's own build —
+# see units/authorizer.gemfile.)
 
 source "https://rubygems.omarqureshi.net" do
   gem "aws-cdk-lib", ">= 0.0.0.pre"

@@ -1,7 +1,11 @@
 # frozen_string_literal: true
 require "aws-cdk-lib"
-require_relative "../config/boot"
 require_relative "stacks/bookface_stack"
+
+# NOTE the absence of `require_relative "../config/boot"`, which the Prospect
+# version needed: the stack read the router's IR at synth time, so synthesis
+# had to load the whole app. This one reads build/units.json, so it needs
+# neither the app nor Foobara — only what the packager already wrote.
 
 # `cdk synth` runs entirely offline: no HostedZone.from_lookup, no context
 # lookups, no credentials. That keeps synth deterministic and lets CI diff the

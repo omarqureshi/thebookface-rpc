@@ -165,6 +165,43 @@ Not defects — design differences that changed the app or its tests:
 - **Commands are at `/run/<Domain>/<Command>`**, from `scoped_full_path` — so
   the Vite proxy forwards `/run`, not `/rpc`.
 
+## The CDK, ported
+
+`infra/stacks/bookface_stack.rb` now synthesises from the manifest rather than
+from a router, and `cdk synth` produces the same topology it did on the
+Prospect branch: five domain Lambdas behind one HTTP API, greedy
+`ANY /run/<Domain>/{proxy+}` routes, a REQUEST authorizer, CloudFront with the
+API at `/run/*` on the same distribution.
+
+What that took, and what it says:
+
+- **`Prospect::CDK::Service` is router-shaped in exactly three places** —
+  `units`, `schema_hash`, and `setting` (per-procedure sizing). Everything else
+  (functions, integrations, routes, authorizer wiring, greedy-vs-exact route
+  splitting, custom domain, DNS) is generic. Given a `units:` prop instead of
+  `router:`, the same construct would serve both. That is the deployment half of
+  the earlier conclusion, now measured rather than asserted.
+- **The manifest has nowhere to put deployment metadata.** Prospect declared
+  `deploy memory: 1769, timeout: 60` on `posts.destroy` — the one procedure that
+  fans out across a whole thread — and the construct took the largest value in a
+  unit. Foobara describes what a command *is*, not how it should be run, which is
+  a defensible line; but something has to carry it, so it sits in a `SIZING`
+  constant in the stack. This is the only genuine gap the port hit.
+- **Least-privilege grants stay hand-written under either framework.** The
+  manifest says which commands a unit serves, not which tables they touch.
+  `depends_on` is a command-to-command graph, which is a different question.
+- **`build/units.json` is now the contract between packaging and synthesis.**
+  The Prospect stack read the router's IR in-process, so synthesis loaded the
+  whole app; this one reads what the packager wrote. Synthesis therefore needs
+  no running server, no Foobara and no Dynamoid — `infra/Gemfile` is down to
+  CDK alone — and it cannot route to a Lambda whose artifact was never built.
+- **`Prospect::Authorizer` survives unchanged**, and reasonably so: optional
+  auth is a property of API Gateway, not of the framework behind it. A JWT
+  authorizer still cannot express it — four commands here are public *and*
+  viewer-aware — and the anonymous list it is configured with is derived from
+  `requires_authentication`, so there is no hand-maintained list of public
+  commands anywhere in the repo.
+
 ## What this means
 
 The RPC half of Prospect is a worse duplicate of Foobara and should go. The
