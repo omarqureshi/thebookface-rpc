@@ -10,14 +10,16 @@ source "https://rubygems.org"
 # diagnose.
 eval_gemfile "../Gemfile"
 
-# Reads the Dynamoid models' keys and indexes.
-gem "dynamoid-cdk-schema", "~> 0.2"
+# NOTE what is not declared here: dynamoid-cdk-schema, foobara-aws, dynamoid,
+# foobara. They all arrive through the app's Gemfile above — declaring them
+# again would list them twice and invite the two copies to drift apart.
 
-source "https://rubygems.omarqureshi.net" do
-  gem "aws-cdk-lib", ">= 0.0.0.pre"
-  gem "constructs", ">= 0.0.0.pre"
-  gem "jsii-ruby-runtime", ">= 0.0.0.pre"
-  gem "aws-cdk-asset-awscli-v1", ">= 0.0.0.pre"
-  gem "aws-cdk-asset-node-proxy-agent-v6", ">= 0.0.0.pre"
-  gem "aws-cdk-cloud-assembly-schema", ">= 0.0.0.pre"
-end
+# One line, as the feed documents: constructs, the jsii runtime and the asset
+# gems are aws-cdk-lib's own dependencies and resolve with it. Declaring them
+# separately pinned six gems where one is needed, and the `>= 0.0.0.pre` those
+# carried was never necessary — the versions are datestamps like
+# 0.0.0.20260804024842, which are ordinary releases, not prereleases.
+#
+# No constraint, so bundle install takes the newest and `bundle update
+# aws-cdk-lib` adopts a later one deliberately.
+gem "aws-cdk-lib", source: "https://rubygems.omarqureshi.net"
