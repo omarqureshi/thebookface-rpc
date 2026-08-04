@@ -14,20 +14,21 @@
 # What remains here is what genuinely IS this app's: where its sources live, and
 # the DynamoDB schema (a different concern, and a different gem).
 
-require "json"
-require "net/http"
-
 require "foobara/aws/packager"
 
 ROOT = File.expand_path("..", __dir__)
 
-# Fetched live from the running connector, not from a snapshot on disk: a stale
-# manifest fails as a packaging bug rather than as an old file, which cost real
-# time when this script read /tmp.
-MANIFEST_URL = ENV.fetch("BOOKFACE_MANIFEST", "http://localhost:9292/manifest")
-manifest = JSON.parse(Net::HTTP.get(URI(MANIFEST_URL)))
+# The connector itself, not its manifest over HTTP. Same information, read
+# straight off the objects: no server to start first, and no snapshot to go
+# stale — which is a failure mode that actually happened here, silently building
+# a five-command domain with three commands in it.
+#
+# A CONNECTOR rather than the domains, because `requires_authentication` is
+# decided at connect time. config.ru builds the real one, so packaging and
+# serving cannot disagree about which commands are public.
+require_relative "../config/connector"
 
-plan = Foobara::AWS.plan(manifest, mount: "/run")
+plan = Foobara::AWS.plan_from_connector(BOOKFACE_CONNECTOR, mount: "/run")
 
 built = Foobara::AWS::Packager.new(
   plan: plan,

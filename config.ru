@@ -8,8 +8,9 @@
 # other domains' commands, as Prospect::Lambda does; it simply never registers
 # them.
 
-require_relative "config/boot"
-require "foobara/rack_connector"
+# The connector is built in config/connector.rb so that packaging reads the same
+# object — in particular the same public list.
+require_relative "config/connector"
 require "fileutils"
 
 # Dev-only object store, carried over from the Prospect branch unchanged: the
@@ -102,30 +103,6 @@ module BookfaceAuth
   end
 end
 
-connector = Foobara::CommandConnectors::Http::Rack.new(
-  # instance_exec'd against the request: no argument, `self` is the request.
-  authenticator: -> { Foobara::AWS.current_caller }
-)
-
-# One line per deployment unit. Locally every domain is connected to one
-# process; a packaged unit connects exactly one, which is what makes it a
-# subset — the others are never registered, so there is nothing to refuse.
-# Commands that read public data are connected open; everything that writes, or
-# that acts on the viewer's own records, requires authentication. This is the
-# single declaration the manifest's `authenticator` field reflects — so the
-# packager derives the public list rather than being handed one.
-PUBLIC_COMMANDS = [
-  Posts::ListPosts, Posts::GetPost,
-  Comments::ListThread,
-  Reactions::MyReactions
-].freeze
-
-[Posts, Comments, Reactions, Profiles, Uploads].each do |domain|
-  domain.foobara_all_command.each do |command|
-    connector.connect(command, requires_authentication: !PUBLIC_COMMANDS.include?(command))
-  end
-end
-
 use ExtractViewer
 
 # /up is served here rather than by the connector: Prospect::RackApp provided
@@ -133,5 +110,5 @@ use ExtractViewer
 run(Rack::Builder.app do
   map("/media") { run DEV_MEDIA }
   map("/up") { run ->(_env) { [200, { "content-type" => "text/plain" }, ["ok"]] } }
-  run connector
+  run BOOKFACE_CONNECTOR
 end)
