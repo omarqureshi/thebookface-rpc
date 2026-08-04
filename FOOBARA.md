@@ -331,6 +331,83 @@ passes through), or a connector defines a side-car file. The former is better:
 sizing is a property of the command, and the person who knows a command fans out
 across a thread is the person writing it.
 
+### Why a result transformer does not close the gap
+
+Miles suggested a result transformer, with the caveat that it probably has no
+visibility into auth. That is right, for two independent reasons — and chasing
+them down found something better than a workaround.
+
+**One: a result transformer has no request handle at all.** `transform_result`
+resolves `self.class.result_transformer` and calls `process_value!(result)`. The
+transformer is class-level and receives only the result value; nothing about the
+invocation reaches it.
+
+**Two: even with a handle, there would be nothing to see.** `Request#authenticate`
+is this:
+
+```ruby
+def authenticate
+  return if error
+  return unless command_class.respond_to?(:requires_authentication) && command_class.requires_authentication
+
+  authenticated_user, authenticated_credential = authenticator.authenticate(self)
+  self.authenticated_user = authenticated_user
+  ...
+  self.error = UnauthenticatedError.new unless authenticated_user
+end
+```
+
+One guard skips **both** things this method does: running the authenticator, and
+enforcing it. So for a public command the authenticator is never called, and
+`authenticated_user` is nil no matter which hook asks. The connector reinforces
+it a layer up — `run_request` only attaches an authenticator to the request when
+`requires_authentication` is true.
+
+That is the whole gap, and it is not really about hooks. It is that
+**authentication is conditional on the gate**.
+
+**Splitting the guard fixes it, in about four lines:**
+
+```ruby
+def authenticate
+  return if error
+  return unless authenticator            # RUN whenever there is one
+
+  self.authenticated_user, self.authenticated_credential = authenticator.authenticate(self)
+
+  return unless command_class.requires_authentication   # ENFORCE only when asked
+  self.error = UnauthenticatedError.new unless authenticated_user
+end
+```
+
+plus attaching the authenticator unconditionally in `run_request`.
+
+Verified by monkey-patching exactly that against this app:
+
+```
+public command, as shipped         authenticated_user=nil
+public command, with the change    authenticated_user=#<struct sub="google|1", name="Ada">
+```
+
+It is backward compatible. A gated command behaves identically — same call, same
+error. A public command's `authenticated_user` goes from always-nil to
+populated, and nothing can be relying on a value that is currently always nil.
+
+**And it unblocks the idiomatic answer rather than just this app's workaround.**
+The ordering in `run_request` is already right:
+
+```ruby
+request.authenticate
+request.mutate_request
+```
+
+So a request mutator injecting the caller as an input — which is what the auth
+demo's `SetRefreshTokenFromCookie` does, and what was suggested to us as the
+proper approach — would work for public commands too. Today it cannot, purely
+because of that one guard. With the change, `foobara-aws` could drop
+`Foobara::AWS.current_caller` entirely and this app could stop reaching for a
+thread-local.
+
 ### 3. A Cognito / optional-auth connector
 
 The most interesting, because building it surfaced a gap in Foobara itself.
