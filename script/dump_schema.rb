@@ -26,17 +26,30 @@ require "dynamoid/cdk/schema"
 
 require_relative "../config/boot"
 
-# Logical id and env var per model. The id is a CloudFormation logical id and is
-# stable on purpose: changing it would replace the table rather than update it.
+# Two names per table, and the distinction matters.
+#
+#   key — how the stack refers to a table when granting access. Stable forever.
+#   id  — the CloudFormation logical id. Changing it REPLACES the table.
+#
+# They were the same string until Posts needed both its GSIs at once:
+# CloudFormation allows only one GSI creation or deletion per table per update,
+# so adding two to a live table is impossible in a single deploy ("Cannot
+# perform more than one GSI creation or deletion in a single update"). Deploying
+# twice would work; replacing the table does it in one, which is the right trade
+# only because these tables are empty. On a table with data, deploy twice.
+#
+# Keeping `key` separate means a future replacement is a one-line change here
+# and the stack's grants are untouched.
 MODELS = {
-  "Posts"     => { model: Post,     env: "POSTS_TABLE" },
-  "Comments"  => { model: Comment,  env: "COMMENTS_TABLE" },
-  "Reactions" => { model: Reaction, env: "REACTIONS_TABLE" },
-  "Profiles"  => { model: Profile,  env: "PROFILES_TABLE" }
+  "Posts"     => { model: Post,     id: "PostsV2",   env: "POSTS_TABLE" },
+  "Comments"  => { model: Comment,  id: "Comments",  env: "COMMENTS_TABLE" },
+  "Reactions" => { model: Reaction, id: "Reactions", env: "REACTIONS_TABLE" },
+  "Profiles"  => { model: Profile,  id: "Profiles",  env: "PROFILES_TABLE" }
 }.freeze
 
-tables = MODELS.map do |id, spec|
-  { "id" => id, "env" => spec.fetch(:env), "schema" => Dynamoid::CDK::Schema.dump(spec.fetch(:model)) }
+tables = MODELS.map do |key, spec|
+  { "key" => key, "id" => spec.fetch(:id), "env" => spec.fetch(:env),
+    "schema" => Dynamoid::CDK::Schema.dump(spec.fetch(:model)) }
 end
 
 out = File.expand_path("../build/tables.json", __dir__)

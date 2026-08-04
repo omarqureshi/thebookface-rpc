@@ -88,8 +88,11 @@ class BookfaceStack < AWSCDK::Stack
     # from the grant (it adds `/index/*` only when the table declares an index).
     # Restating a schema in infra is how the two drift; this is the same reason
     # the topology comes from the manifest.
+    # Keyed by `key`, not by the CloudFormation logical `id` — they differ when
+    # a table has had to be replaced (see script/dump_schema.rb), and the grants
+    # below should not have to care.
     tables = {}
-    @tables_plan.each { |spec| tables[spec.fetch("id")] = table(spec) }
+    @tables_plan.each { |spec| tables[spec.fetch("key")] = table(spec) }
     posts, comments, reactions, profiles =
       tables.values_at("Posts", "Comments", "Reactions", "Profiles")
 
@@ -145,7 +148,7 @@ class BookfaceStack < AWSCDK::Stack
     # Env var names come from the same file, so adding a model is a change in one
     # place rather than three.
     environment = { "BOOKFACE_ENV" => stage, "MEDIA_BUCKET" => media.bucket_name }
-    @tables_plan.each { |spec| environment[spec.fetch("env")] = tables.fetch(spec.fetch("id")).table_name }
+    @tables_plan.each { |spec| environment[spec.fetch("env")] = tables.fetch(spec.fetch("key")).table_name }
 
     # The API and its functions hang off a child construct rather than the stack
     # itself, which is what Prospect::CDK::Service gave for free: at stack level
