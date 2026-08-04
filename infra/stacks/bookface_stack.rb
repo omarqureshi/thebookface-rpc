@@ -42,14 +42,17 @@ class BookfaceStack < AWSCDK::Stack
   }.freeze
   DEFAULT_SIZING = { memory_size: 1024, timeout_seconds: 10 }.freeze
 
-  # Custom domain, optional — the stack synthesises without one and serves on the
-  # generated CloudFront name. Set BOOKFACE_DOMAIN to claim a hostname.
+  # Custom domain per stage, committed rather than passed in. It was an env var
+  # (BOOKFACE_DOMAIN), and a deploy that forgot it silently produced a stack with
+  # no certificate, no records and no alias — which then also means a LATER
+  # deploy would delete them. Config that only exists in a shell history is not
+  # config. BOOKFACE_DOMAIN still overrides, for a throwaway deploy.
   #
   # Only the SITE gets a domain, not the API: the API is already behind the same
   # distribution at /run/*, which is what makes the client same-origin and lets
   # the bundle ship with no environment-specific URL in it. A separate API
   # Gateway custom domain would undo that.
-  DOMAIN = ENV.fetch("BOOKFACE_DOMAIN", nil)
+  DOMAINS = { "staging" => "staging.thebookface.net" }.freeze
   # Looked up by attributes rather than HostedZone.from_lookup: a lookup needs
   # AWS credentials at synth time, which makes `cdk synth` non-deterministic and
   # breaks it offline and in CI.
@@ -70,6 +73,7 @@ class BookfaceStack < AWSCDK::Stack
   def initialize(scope, id, props = nil, stage: "staging")
     super(scope, id, props)
 
+    @domain = ENV["BOOKFACE_DOMAIN"] || DOMAINS[stage]
     @plan = JSON.parse(File.read(File.join(BUILD, "units.json")))
 
     posts     = table(id: "Posts",     partition: "id")
@@ -172,7 +176,7 @@ class BookfaceStack < AWSCDK::Stack
 
     AWSCDK::CfnOutput.new(self, "ApiUrl", { value: @api.url })
     AWSCDK::CfnOutput.new(self, "SiteUrl",
-                          { value: DOMAIN ? "https://#{DOMAIN}" : "https://#{site.distribution_domain_name}" })
+                          { value: @domain ? "https://#{@domain}" : "https://#{site.distribution_domain_name}" })
     AWSCDK::CfnOutput.new(self, "UserPoolId", { value: pool.user_pool_id })
     AWSCDK::CfnOutput.new(self, "UserPoolClientId", { value: client.user_pool_client_id })
   end
@@ -256,10 +260,21 @@ class BookfaceStack < AWSCDK::Stack
     AWSCDK::APIGatewayv2Authorizers::HttpLambdaAuthorizer.new(
       "ApiAuth", fn,
       { response_types: [AWSCDK::APIGatewayv2Authorizers::HttpLambdaResponseType::SIMPLE],
-        # Cached per (identity source, route). An anonymous request carries no
-        # Authorization header and so is never cached — every one invokes this.
-        results_cache_ttl: AWSCDK::Duration.seconds(300),
-        identity_source: ["$request.header.Authorization"] }
+        # NO identity source, and this is the whole point of the authorizer.
+        #
+        # Naming one makes it REQUIRED: when the header is absent API Gateway
+        # answers 401 by itself and never invokes the Lambda. So declaring
+        # "$request.header.Authorization" — as Prospect::CDK::Service does, with
+        # a comment claiming the opposite — means an anonymous caller is refused
+        # before the optional-auth logic can allow them, and the four public
+        # commands cannot be reached signed out at all. Measured against the
+        # deployed API: ListPosts returned 401 anonymously.
+        #
+        # With no identity source the authorizer runs on every request, which is
+        # what "optional" requires. Caching must then be off: there is no key to
+        # cache under.
+        results_cache_ttl: AWSCDK::Duration.seconds(0),
+        identity_source: [] }
     )
   end
 
@@ -287,6 +302,23 @@ class BookfaceStack < AWSCDK::Stack
     # CloudFront wants the bare host.
     api_domain = AWSCDK::Fn.select(2, AWSCDK::Fn.split("/", @api.url))
 
+    # Rewrites client routes to index.html. /posts/:id is a route with no object
+    # behind it, so S3 would answer 403 (404 only when ListBucket is granted,
+    # which OAC does not) and a cold load or refresh of any route below / would
+    # fail. Anything with a dot is treated as a real file and passed through.
+    spa_router = AWSCDK::CloudFront::Function.new(self, "SpaRouter", {
+      # `.JS_2_0`, a static property, not an enum constant — the same
+      # distinction as Architecture.X86_64 and OAuthScope.OPENID above.
+      runtime: AWSCDK::CloudFront::FunctionRuntime.JS_2_0,
+      code: AWSCDK::CloudFront::FunctionCode.from_inline(<<~JS)
+        function handler(event) {
+          var uri = event.request.uri
+          if (uri.indexOf('.') === -1) { event.request.uri = '/index.html' }
+          return event.request
+        }
+      JS
+    })
+
     zone = domain_zone
     # us-east-1 is not a choice here: CloudFront only accepts certificates from
     # that region. This stack happens to deploy there anyway; from any other
@@ -294,7 +326,7 @@ class BookfaceStack < AWSCDK::Stack
     certificate =
       if zone
         AWSCDK::CertificateManager::Certificate.new(self, "SiteCert", {
-          domain_name: DOMAIN,
+          domain_name: @domain,
           validation: AWSCDK::CertificateManager::CertificateValidation.from_dns(zone)
         })
       end
@@ -304,7 +336,12 @@ class BookfaceStack < AWSCDK::Stack
 
       default_behavior: {
         origin: AWSCDK::CloudFrontOrigins::S3BucketOrigin.with_origin_access_control(bucket),
-        viewer_protocol_policy: AWSCDK::CloudFront::ViewerProtocolPolicy::REDIRECT_TO_HTTPS
+        viewer_protocol_policy: AWSCDK::CloudFront::ViewerProtocolPolicy::REDIRECT_TO_HTTPS,
+        # The history fallback, attached to THIS behaviour only — see below.
+        function_associations: [{
+          function: spa_router,
+          event_type: AWSCDK::CloudFront::FunctionEventType::VIEWER_REQUEST
+        }]
       },
 
       additional_behaviors: {
@@ -323,21 +360,24 @@ class BookfaceStack < AWSCDK::Stack
         }
       },
 
-      # THE HISTORY FALLBACK. /posts/:id is a client route with no object behind
-      # it, so S3 answers 403 (404 only when ListBucket is granted, which OAC
-      # does not). Both are rewritten to index.html with a 200 so the router can
-      # read the path. Without this a cold load or a refresh of any route below
-      # / returns an error page.
-      error_responses: [
-        { http_status: 403, response_http_status: 200,
-          response_page_path: "/index.html", ttl: AWSCDK::Duration.seconds(0) },
-        { http_status: 404, response_http_status: 200,
-          response_page_path: "/index.html", ttl: AWSCDK::Duration.seconds(0) }
-      ]
+      # NOTE the absence of error_responses. The history fallback used to be
+      # `403 -> /index.html 200` and `404 -> /index.html 200`, which is the usual
+      # recipe and is WRONG here: custom error responses apply to the whole
+      # DISTRIBUTION, including /run/*. So the API's own 403s and 404s came back
+      # as a 200 serving the HTML page. Measured: POST /run/Posts/CreatePost with
+      # an invalid token returned 200 and an index.html body through CloudFront,
+      # where API Gateway had answered 403.
+      #
+      # That would have hidden Prospect's `forbidden` (403) and `not_found` (404)
+      # entirely; Foobara answers 422, so only API Gateway's own refusals were
+      # masked here — still enough to make a refused request look like a success.
+      #
+      # The fallback now lives in a viewer-request function on the default
+      # behaviour, which /run/* does not share.
     }
 
     if certificate
-      props[:domain_names] = [DOMAIN]
+      props[:domain_names] = [@domain]
       props[:certificate]  = certificate
     end
 
@@ -350,9 +390,9 @@ class BookfaceStack < AWSCDK::Stack
         AWSCDK::Route53Targets::CloudFrontTarget.new(distribution)
       )
       AWSCDK::Route53::ARecord.new(self, "SiteAlias",
-                                   { zone: zone, record_name: DOMAIN, target: target })
+                                   { zone: zone, record_name: @domain, target: target })
       AWSCDK::Route53::AaaaRecord.new(self, "SiteAliasV6",
-                                      { zone: zone, record_name: DOMAIN, target: target })
+                                      { zone: zone, record_name: @domain, target: target })
     end
 
     dist = File.expand_path("../../web/dist", __dir__)
@@ -395,11 +435,11 @@ class BookfaceStack < AWSCDK::Stack
   # the same pool — neither is a secret, and an unregistered redirect_uri is
   # refused by Cognito, which is what makes the list the security boundary.
   def oauth_urls
-    ["https://#{DOMAIN || 'staging.thebookface.net'}/", "http://localhost:5173/"]
+    ["https://#{@domain}/", "http://localhost:5173/"]
   end
 
   def domain_zone
-    return nil unless DOMAIN
+    return nil unless @domain
 
     AWSCDK::Route53::HostedZone.from_hosted_zone_attributes(
       self, "Zone", { hosted_zone_id: ZONE_ID, zone_name: ZONE_NAME }
