@@ -56,7 +56,12 @@ module Shared
   module Viewer
     module_function
 
-    def current = Thread.current[:bookface_viewer]
+    # foobara-aws owns this: its Lambda handler sets it from the authorizer's
+    # verified claims, and config.ru's middleware sets it locally. Foobara has
+    # no notion of optional identity — requires_authentication answers whether a
+    # caller may in, not who they are — and these commands need the viewer as
+    # DATA (editable/deletable are per-viewer fields).
+    def current = Foobara::AWS.current_caller
 
     def require!
       current || raise(Foobara::Command::UnexpectedError, "not signed in")

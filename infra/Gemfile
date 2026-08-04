@@ -10,6 +10,10 @@ source "https://rubygems.org"
 # from dumped data need not install the application's ORM.
 gem "dynamoid-cdk-schema", "~> 0.2"
 
+# The API topology, from build/plan.json. Note what is NOT here: foobara. The
+# plan is plain data, so synthesis deploys a Foobara app without installing it.
+gem "foobara-aws", path: "../../foobara-aws"
+
 source "https://rubygems.omarqureshi.net" do
   gem "aws-cdk-lib", ">= 0.0.0.pre"
   gem "constructs", ">= 0.0.0.pre"

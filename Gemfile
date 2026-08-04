@@ -5,6 +5,10 @@ source "https://rubygems.org"
 # that clients and (we hope) packaging are both driven from.
 gem "foobara"
 gem "foobara-rack-connector"
+# Plans the deployment from the manifest, packages one artifact per domain, and
+# provides the Lambda handler and optional-auth authorizer. Its CDK half is a
+# separate require, used only by infra/.
+gem "foobara-aws", path: "../foobara-aws"
 # Foobara's own TypeScript SDK generator — the counterpart to Prospect's
 # emitter, and the honest comparison for the client half.
 gem "foobara-typescript-remote-command-generator", group: :development

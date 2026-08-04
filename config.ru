@@ -50,11 +50,6 @@ DEV_MEDIA = lambda do |env|
   end
 end
 
-# Local personas, as on the Prospect branch: no Cognito, so identity is a
-# header. The authenticator returns whatever object the app wants as its
-# current_user.
-Viewer = Struct.new(:sub, :name)
-
 # Identity is extracted by middleware, not by the connector's authenticator,
 # for a reason worth recording: Foobara authenticates only commands that
 # declare `requires_authentication`, so a command that is PUBLIC but
@@ -74,10 +69,10 @@ class ExtractViewer
 
   def call(env)
     sub = env["HTTP_X_DEV_SUB"]
-    Thread.current[:bookface_viewer] = BookfaceAuth.viewer_from(env)
+    Foobara::AWS.current_caller = BookfaceAuth.viewer_from(env)
     @app.call(env)
   ensure
-    Thread.current[:bookface_viewer] = nil
+    Foobara::AWS.current_caller = nil
   end
 end
 
@@ -101,13 +96,15 @@ module BookfaceAuth
       name = cookies["dev_name"]
     end
 
-    sub && Viewer.new(sub, name || sub)
+    # The same builder the deployed handler uses, so local and deployed identity
+    # cannot drift.
+    sub && Foobara::AWS.caller_builder.call({ "sub" => sub, "name" => name })
   end
 end
 
 connector = Foobara::CommandConnectors::Http::Rack.new(
   # instance_exec'd against the request: no argument, `self` is the request.
-  authenticator: -> { BookfaceAuth.viewer_from(env) }
+  authenticator: -> { Foobara::AWS.current_caller }
 )
 
 # One line per deployment unit. Locally every domain is connected to one

@@ -7,6 +7,9 @@ require "constructs"
 # Dynamoid models (script/dump_schema.rb); this half needs neither Dynamoid nor
 # the app, which is why synthesis still depends only on what was built.
 require "dynamoid/cdk/schema"
+# The API topology: one Lambda per domain, its route, and the public list —
+# all read from build/plan.json, which the packager derived from the manifest.
+require "foobara/aws/cdk/service"
 
 # The whole deployment, driven by build/units.json.
 #
@@ -30,21 +33,10 @@ require "dynamoid/cdk/schema"
 class BookfaceStack < AWSCDK::Stack
   BUILD = File.expand_path("../../build", __dir__)
 
-  # The ONE thing the manifest cannot supply.
-  #
-  # Prospect declared this per procedure — `deploy memory: 1769, timeout: 60` on
-  # posts.destroy, which fans out across a whole thread — and the construct took
-  # the largest value in a unit. Foobara's manifest has no place for deployment
-  # metadata: it describes what a command IS, not how it should be run, which is
-  # a defensible line to draw and a real gap for this use. Absent a Foobara
-  # extension, it has to live somewhere out-of-band, so it lives here where it
-  # is at least visible rather than in a heuristic.
-  SIZING = {
-    # destroy_with_thread! deletes a post, its whole comment tree and every
-    # reaction on any of them, so it is the one unit that needs headroom.
-    "posts" => { memory_size: 1769, timeout_seconds: 60 }
-  }.freeze
-  DEFAULT_SIZING = { memory_size: 1024, timeout_seconds: 10 }.freeze
+  # NOTE what is no longer here: a SIZING constant. Deployment metadata was
+  # out-of-band because the manifest had nowhere for it; commands now declare
+  # `aws_lambda` themselves (see Posts::DestroyPost) and it travels through the
+  # manifest into the plan.
 
   # Custom domain per stage, committed rather than passed in. It was an env var
   # (BOOKFACE_DOMAIN), and a deploy that forgot it silently produced a stack with
@@ -78,7 +70,7 @@ class BookfaceStack < AWSCDK::Stack
     super(scope, id, props)
 
     @domain = ENV["BOOKFACE_DOMAIN"] || DOMAINS[stage]
-    @plan = JSON.parse(File.read(File.join(BUILD, "units.json")))
+    @plan = Foobara::AWS::Plan.load(JSON.parse(File.read(File.join(BUILD, "plan.json"))))
     @tables_plan = JSON.parse(File.read(File.join(BUILD, "tables.json")))
 
     # Tables come from build/tables.json, which script/dump_schema.rb reads off
@@ -156,18 +148,31 @@ class BookfaceStack < AWSCDK::Stack
     environment = { "BOOKFACE_ENV" => stage, "MEDIA_BUCKET" => media.bucket_name }
     @tables_plan.each { |spec| environment[spec.fetch("env")] = tables.fetch(spec.fetch("key")).table_name }
 
-    # The API and its functions hang off a child construct rather than the stack
-    # itself, which is what Prospect::CDK::Service gave for free: at stack level
-    # the `comments` function and the `Comments` table both want the logical id
-    # "Comments" and synthesis fails. Nesting also keeps the generated ids
-    # (Api/Posts, Api/Comments) matching the Prospect branch's template.
-    @scope = Constructs::Construct.new(self, "Api")
+    # One construct, driven by the plan. It hangs the API and its functions off a
+    # child scope, which also avoids the logical-id collision between the
+    # `comments` function and the `Comments` table.
+    api = Foobara::AWS::CDK::Service.new(
+      self, "Api",
+      plan: @plan,
+      code_root: BUILD,
+      environment: environment,
+      # X-Ray, for cold starts: a cold invocation gets an Initialization
+      # subsegment, so boot cost is visible rather than inferred.
+      tracing: :active,
+      authorizer: {
+        id: "Authorizer",
+        code: File.join(BUILD, "authorizer"),
+        environment: {
+          # Built from the pool id rather than read off the construct: an
+          # IMPORTED pool exposes user_pool_id but not user_pool_provider_url.
+          "FOOBARA_ISSUER" => "https://cognito-idp.#{region}.amazonaws.com/#{USER_POOL_ID}",
+          "FOOBARA_AUDIENCE" => client.user_pool_client_id
+        }
+      }
+    )
 
-    @api = AWSCDK::APIGatewayv2::HttpAPI.new(@scope, "Api", {})
-    authorizer = build_authorizer(pool, client)
-
-    @functions = {}
-    @plan.fetch("units").each { |unit| add_unit(unit, environment, authorizer) }
+    @api = api.api
+    @functions = @plan.units.to_h { |unit| [unit.name, api.function(unit.name)] }
 
     # Least-privilege per unit, which is the payoff for one Lambda per domain:
     # `uploads` can sign S3 URLs but cannot read a post, and `reactions` never
@@ -220,26 +225,6 @@ class BookfaceStack < AWSCDK::Stack
 
   private
 
-  def add_unit(unit, environment, authorizer)
-    name = unit.fetch("name")
-    fn = build_function(name, environment)
-    @functions[name] = fn
-
-    @api.add_routes({
-      # One greedy route per unit. That is only possible because the authorizer
-      # is a LAMBDA authorizer, which sees rawPath and so decides per command; a
-      # JWT authorizer attaches per route, and a unit mixing public and
-      # authenticated commands (posts has both) would have to be split into one
-      # exact route per command.
-      path: unit.fetch("route"),
-      methods: [AWSCDK::APIGatewayv2::HttpMethod::ANY],
-      integration: AWSCDK::APIGatewayv2Integrations::HttpLambdaIntegration.new(
-        "#{logical(name)}Integration", fn
-      ),
-      authorizer: authorizer
-    })
-  end
-
   def build_function(name, environment)
     sizing = SIZING.fetch(name, DEFAULT_SIZING)
 
@@ -265,55 +250,6 @@ class BookfaceStack < AWSCDK::Stack
   # Reactions::MyReactions returns the caller's own reactions — and under a JWT
   # authorizer they could never see a signed-in caller.
   #
-  # lib/bookface_authorizer.rb, which replaced Prospect::Authorizer — the last
-  # thing this branch took from Prospect. Optional auth is a property of API
-  # Gateway rather than of the framework behind it, so it is a candidate for a
-  # Foobara connector rather than an app file; see FOOBARA.md.
-  def build_authorizer(pool, client)
-    fn = AWSCDK::Lambda::Function.new(@scope, "Authorizer", {
-      runtime: AWSCDK::Lambda::Runtime.RUBY_4_0,
-      architecture: AWSCDK::Lambda::Architecture.X86_64,
-      handler: "handler.handle",
-      code: AWSCDK::Lambda::Code.from_asset(File.join(BUILD, "authorizer")),
-      memory_size: 512,
-      timeout: AWSCDK::Duration.seconds(10),
-      environment: {
-        # Built from the pool id rather than read off the construct: an
-        # IMPORTED pool exposes user_pool_id but not user_pool_provider_url.
-        # This is the same string the Rails stack passes its app as
-        # COGNITO_ISSUER, and what the tokens actually carry in `iss`.
-        "BOOKFACE_ISSUER"   => "https://cognito-idp.#{region}.amazonaws.com/#{USER_POOL_ID}",
-        "BOOKFACE_AUDIENCE" => client.user_pool_client_id,
-        # Derived from the manifest's requires_authentication, via units.json.
-        # There is no hand-maintained list of public commands anywhere in this
-        # repo — declaring `connect(command, requires_authentication: …)` in
-        # config.ru is what puts a command in or out of it.
-        "BOOKFACE_ANONYMOUS" => @plan.fetch("anonymous").join(","),
-        "BOOKFACE_MOUNT"     => @plan.fetch("mount")
-      }
-    })
-
-    AWSCDK::APIGatewayv2Authorizers::HttpLambdaAuthorizer.new(
-      "ApiAuth", fn,
-      { response_types: [AWSCDK::APIGatewayv2Authorizers::HttpLambdaResponseType::SIMPLE],
-        # NO identity source, and this is the whole point of the authorizer.
-        #
-        # Naming one makes it REQUIRED: when the header is absent API Gateway
-        # answers 401 by itself and never invokes the Lambda. So declaring
-        # "$request.header.Authorization" — as Prospect::CDK::Service does, with
-        # a comment claiming the opposite — means an anonymous caller is refused
-        # before the optional-auth logic can allow them, and the four public
-        # commands cannot be reached signed out at all. Measured against the
-        # deployed API: ListPosts returned 401 anonymously.
-        #
-        # With no identity source the authorizer runs on every request, which is
-        # what "optional" requires. Caching must then be off: there is no key to
-        # cache under.
-        results_cache_ttl: AWSCDK::Duration.seconds(0),
-        identity_source: [] }
-    )
-  end
-
   # The SPA on S3 behind CloudFront, with the API on the SAME distribution at
   # /run/*. Two things fall out of that:
   #

@@ -132,6 +132,14 @@ module Posts
   end
 
   class DestroyPost < Foobara::Command
+    # Deployment metadata on the command, carried through the manifest into the
+    # plan — this used to be a SIZING constant in the CDK stack, out-of-band
+    # from the thing that knows why it is needed.
+    extend Foobara::AWS::Lambda
+    # destroy_with_thread! deletes a post, its whole comment tree and every
+    # reaction on any of them. One vCPU (Lambda allocates CPU by memory; 1769MB
+    # is the point where a function gets a full one) and room to finish.
+    aws_lambda vcpu: 1, timeout: 60
     description "Cascading delete across posts, comments and reactions, then images."
     inputs do
       id :string, :required

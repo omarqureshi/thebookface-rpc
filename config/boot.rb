@@ -8,6 +8,8 @@ require "time"
 require "dynamoid"
 require "cancancan"
 require "foobara/all"
+require "foobara/aws/handler"
+require "foobara/aws/lambda"
 
 TABLE_DEFAULTS = {
   "POSTS_TABLE"     => "bookface_posts",
@@ -36,6 +38,14 @@ require_relative "../app/models/comment"
 require_relative "../app/models/reaction"
 require_relative "../app/models/profile"
 require_relative "../app/models/ability"
+
+# Who a set of verified claims IS, for this app. The generated Lambda handler
+# and config.ru both call this, so identity is built in exactly one place.
+Viewer = Struct.new(:sub, :name)
+Foobara::AWS.caller_builder = lambda do |claims|
+  sub = claims["sub"]
+  sub && Viewer.new(sub, claims["name"] || claims["email"] || sub)
+end
 
 require_relative "../app/domains/shared"
 require_relative "../app/domains/posts"
