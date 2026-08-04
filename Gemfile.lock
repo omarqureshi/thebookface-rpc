@@ -1,8 +1,3 @@
-PATH
-  remote: ../foobara-aws
-  specs:
-    foobara-aws (0.1.0)
-
 GEM
   remote: https://rubygems.org/
   specs:
@@ -108,6 +103,7 @@ GEM
       foobara-lru-cache (< 2.0.0)
       foobara-util (< 2.0.0)
       inheritable-thread-vars (< 2.0.0)
+    foobara-aws (0.1.0)
     foobara-files-generator (0.1.2)
       foobara (>= 0.1.1, < 2.0.0)
     foobara-http-command-connector (1.1.5)
@@ -201,7 +197,7 @@ DEPENDENCIES
   dynamoid (~> 3.10)
   dynamoid-cdk-schema (~> 0.2)
   foobara
-  foobara-aws!
+  foobara-aws (~> 0.1)
   foobara-rack-connector
   foobara-typescript-remote-command-generator
   puma
@@ -250,7 +246,7 @@ CHECKSUMS
   ffi (1.17.4-x86_64-linux-gnu) sha256=9d3db14c2eae074b382fa9c083fe95aec6e0a1451da249eab096c34002bc752d
   ffi (1.17.4-x86_64-linux-musl) sha256=3fdf9888483de005f8ef8d1cf2d3b20d86626af206cbf780f6a6a12439a9c49e
   foobara (0.5.10) sha256=f40391dd1e30141916191f423f9993c3f231da4090e6aa767eb87e63251cd959
-  foobara-aws (0.1.0)
+  foobara-aws (0.1.0) sha256=08a02ef8c2c965d9e02885c2a29927442ee9473fc92fe7a4e3227406b9bac972
   foobara-files-generator (0.1.2) sha256=85213b8dd7b060ca997ee48012eb069b8106ed2443addc2570d7dfade155f3f1
   foobara-http-command-connector (1.1.5) sha256=d8bcb4fb861741f86e7cea1f6deaa23c0e8885e476d4aa01b81f13bdba00aa32
   foobara-lru-cache (1.0.0) sha256=ff9716e011a4642382dc0e1fd7a80751134b1fbf97d180fd333472a5d20f2029

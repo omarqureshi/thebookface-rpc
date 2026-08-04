@@ -35,11 +35,6 @@ built = Foobara::AWS::Packager.new(
   # The authorizer gets none of these — it verifies a token and answers yes or
   # no, so the domain model would be dead weight on every authenticated request.
   sources: %w[app config],
-  # foobara-aws is a path gem until it is published, and the build container
-  # sees only the app root — so its location has to be mounted too. Bundler
-  # bakes an absolute load path for a path gem; the packager copies it in and
-  # rewrites that, or the artifact would boot here and LoadError in Lambda.
-  mounts: [File.expand_path("../foobara-aws", ROOT)],
   authorizer: {}
 ).build
 
