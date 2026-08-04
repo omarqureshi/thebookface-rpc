@@ -1,18 +1,17 @@
 source "https://rubygems.org"
 
-# No prospect and no app gems: this stack reads build/units.json, so synthesis
-# needs neither Prospect's IR nor Foobara nor Dynamoid. (Prospect::Authorizer is
-# still deployed, but it is fetched inside the authorizer unit's own build —
-# see units/authorizer.gemfile.)
+# The application's own gems, evaluated rather than restated.
+#
+# Synthesis loads the app to read the connector, so it must read it with EXACTLY
+# the Foobara and Dynamoid the app runs. Declaring them here independently would
+# resolve a second set of versions, and the plan would then be computed by a
+# different Foobara than the one deployed — a skew that would show up as a
+# deployment subtly disagreeing with the code, which is the hardest kind to
+# diagnose.
+eval_gemfile "../Gemfile"
 
-# Builds the tables from build/tables.json. Note what is NOT here: dynamoid.
-# The gem stopped declaring it in 0.2.0 precisely so an infra bundle building
-# from dumped data need not install the application's ORM.
+# Reads the Dynamoid models' keys and indexes.
 gem "dynamoid-cdk-schema", "~> 0.2"
-
-# The API topology, from build/plan.json. Note what is NOT here: foobara. The
-# plan is plain data, so synthesis deploys a Foobara app without installing it.
-gem "foobara-aws", "~> 0.2"
 
 source "https://rubygems.omarqureshi.net" do
   gem "aws-cdk-lib", ">= 0.0.0.pre"

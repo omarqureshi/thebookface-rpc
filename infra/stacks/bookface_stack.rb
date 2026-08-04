@@ -8,8 +8,10 @@ require "constructs"
 # the app, which is why synthesis still depends only on what was built.
 require "dynamoid/cdk/schema"
 # The API topology: one Lambda per domain, its route, and the public list —
-# all read from build/plan.json, which the packager derived from the manifest.
+# all read from the connector — see the note below on why synthesis loads the app.
 require "foobara/aws/cdk/service"
+# Loads the app. See the note above on why synthesis is allowed to be slow.
+require_relative "../../config/connector"
 
 # The whole deployment, driven by build/units.json.
 #
@@ -70,7 +72,7 @@ class BookfaceStack < AWSCDK::Stack
     super(scope, id, props)
 
     @domain = ENV["BOOKFACE_DOMAIN"] || DOMAINS[stage]
-    @plan = Foobara::AWS::Plan.load(JSON.parse(File.read(File.join(BUILD, "plan.json"))))
+    @plan = Foobara::AWS.plan_from_connector(BOOKFACE_CONNECTOR, mount: "/run")
     @tables_plan = JSON.parse(File.read(File.join(BUILD, "tables.json")))
 
     # Tables come from build/tables.json, which script/dump_schema.rb reads off
