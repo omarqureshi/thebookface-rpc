@@ -281,12 +281,27 @@ actually compares.
 
 **What would have caught them, cheapest first:**
 
-1. **A post-deploy contract check** — a dozen HTTP requests against the deployed
-   URL asserting status codes: public command anonymously (200), gated without a
-   token (401/403), gated with a forged dev header (refused), gated with an
-   invalid token (**not** a 200, and `application/json`), a client route (200
-   HTML), `/config.json` (200 JSON). That is defects 1, 2, 3, 5 and 9 in about
-   thirty lines, and it is the single highest-value thing still missing.
+1. **A post-deploy contract check.** This now exists — `Foobara::AWS::Check`,
+   driven by the plan, so it knows which commands are public without being told.
+   Against the deployed API it runs 48 checks (`script/check_deploy.rb`):
+
+   ```
+   48/48 checks passed
+   ok   Posts::ListPosts        reachable anonymously (expected not 401/403, got 200)
+   ok   Posts::GetPost          reachable anonymously (expected not 401/403, got 422)
+   ok   Uploads::Presign        refused anonymously (expected 401/403, got 403)
+   ok   Uploads::Presign        refusal is not a web page (expected json, got application/json)
+   ```
+
+   Replaying defects 1 and 2 through it — every caller 401'd, refusals rewritten
+   to `200 text/html` — fails 44 of those 48. It would have caught both, in a run
+   taking seconds.
+
+   A 422 counts as reachable, as `Posts::GetPost` shows above: every request
+   carries `{}`, so a command with required inputs answers 422, and the question
+   is whether the request reached the command rather than whether it liked the
+   inputs. Gated commands are only ever called *without* credentials, so they are
+   refused before executing and nothing is written.
 2. **Running a real command inside the packaged artifact**, not merely booting it.
    The packager booted each unit and that caught nothing — booting exercises no
    path that matters. Invoking one command per unit against real configuration
@@ -360,10 +375,21 @@ Per-unit gem slicing works — the units that never touch S3 are 8MB smaller —
 the authorizer being three orders of magnitude smaller than a domain unit is the
 point of keeping it separate: it runs on every request, including anonymous ones.
 
-Cold start is not yet measured. X-Ray is now enabled on every function, which
-splits a cold invocation into an `Initialization` subsegment, so the number will
-be available directly rather than inferred from `REPORT` lines. Worth doing
-before deciding whether per-command granularity is affordable.
+**Cold start is about 2 seconds**, against 7–12 seconds for the Rails monolith
+this app replaces.
+
+That is not a like-for-like framework comparison — the old one is a whole Rails
+application in a single function, this is one domain's commands in a slice of a
+gem bundle — but the difference is the point. Three things contribute, in
+descending order: no Rails, a bundle holding only what one domain needs, and
+`bundle install --standalone` so Bundler's own runtime is never loaded.
+
+2 seconds is still slow enough to notice on a first request, and most of it is
+Foobara's own load. Per-command granularity would divide the *work* further but
+not that constant, which is the argument for keeping domains as the unit.
+
+X-Ray is enabled on every function, so an `Initialization` subsegment gives the
+number directly rather than inferring it from `REPORT` lines.
 
 ## Open questions
 
@@ -372,5 +398,5 @@ before deciding whether per-command granularity is affordable.
   a thread-local.
 - **A place for deployment metadata** in the manifest, rather than a gem
   extending it.
-- **The post-deploy contract check**, which the plan already has the data for:
-  it knows which commands are public and which are not.
+- **Cold start**, if 2 seconds is too slow. The load is Foobara's, so the levers
+  are its own boot cost or something that avoids paying it per request.
