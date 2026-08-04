@@ -30,9 +30,17 @@ export function errorMessage(e: unknown): string {
   }
 }
 
+// The uploaded object plus a local preview URL. The preview comes from the
+// File itself rather than from the uploaded object's public URL: it is instant,
+// costs no round trip, and works before CloudFront has ever seen the object.
+interface Attachment {
+  media: UploadedMedia
+  preview: string
+}
+
 export function Composer({ onPosted }: { onPosted: () => void }) {
   const [body, setBody] = useState("")
-  const [media, setMedia] = useState<UploadedMedia[]>([])
+  const [media, setMedia] = useState<Attachment[]>([])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -45,7 +53,7 @@ export function Composer({ onPosted }: { onPosted: () => void }) {
     setError(null)
     try {
       const uploaded = await uploadImage(file)
-      setMedia((m) => [...m, uploaded])
+      setMedia((m) => [...m, { media: uploaded, preview: URL.createObjectURL(file) }])
     } catch (e) {
       setError(errorMessage(e))
     } finally {
@@ -53,12 +61,20 @@ export function Composer({ onPosted }: { onPosted: () => void }) {
     }
   }
 
+  // Only drops it from this draft — the object is already in the store, and the
+  // reaper that runs on post deletion is what cleans up anything unreferenced.
+  function remove(attachment: Attachment) {
+    URL.revokeObjectURL(attachment.preview)
+    setMedia((m) => m.filter((a) => a !== attachment))
+  }
+
   async function submit() {
     setBusy(true)
     setError(null)
     try {
-      await api.posts.create({ body: body || null, media })
+      await api.posts.create({ body: body || null, media: media.map((a) => a.media) })
       setBody("")
+      media.forEach((a) => URL.revokeObjectURL(a.preview))
       setMedia([])
       if (fileInput.current) fileInput.current.value = ""
       onPosted()
@@ -90,8 +106,21 @@ export function Composer({ onPosted }: { onPosted: () => void }) {
       </div>
 
       <div className="composer__previews">
-        {media.map((m) => (
-          <span key={m.key} className="upload-tile" data-testid="attached-count" />
+        {media.map((a) => (
+          <span
+            key={a.media.key}
+            className="upload-tile"
+            data-testid="attached-count"
+            style={{ backgroundImage: `url(${a.preview})` }}
+          >
+            <button
+              className="upload-tile__remove"
+              aria-label="Remove image"
+              onClick={() => remove(a)}
+            >
+              ×
+            </button>
+          </span>
         ))}
         {uploading && <span className="upload-tile is-loading" />}
       </div>

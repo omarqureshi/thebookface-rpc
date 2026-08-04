@@ -188,6 +188,18 @@ class BookfaceStack < AWSCDK::Stack
     media.grant_put(function("uploads"))
     media.grant_delete(function("posts"))                # reap on delete
 
+    # Dynamoid checks table existence via dynamodb:ListTables on its first
+    # write. That is an account-level action with no resource-level scoping, so
+    # grant_read_write_data above cannot include it and every write 500'd with
+    # AccessDeniedException. Granted explicitly on "*" because AWS permits no
+    # narrower resource — the Rails stack carries the identical statement for
+    # the identical reason.
+    @functions.each_value do |fn|
+      fn.add_to_role_policy(
+        AWSCDK::IAM::PolicyStatement.new({ actions: ["dynamodb:ListTables"], resources: ["*"] })
+      )
+    end
+
     site = deploy_site(client, media)
 
     # Set after the fact rather than in `environment`: the value depends on the
