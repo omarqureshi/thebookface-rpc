@@ -12,12 +12,18 @@ packaged from the manifest into five Lambda artifacts, each of which boots in
 the runtime image, serves its own commands and 404s every other domain's.
 
 ```
-built comments:  4 commands, route /rpc/comments/{proxy+},  public 1
-built posts:     3 commands, route /rpc/posts/{proxy+},     public 2
-built profiles:  2 commands, route /rpc/profiles/{proxy+},  public 0
-built reactions: 2 commands, route /rpc/reactions/{proxy+}, public 1
-built uploads:   1 commands, route /rpc/uploads/{proxy+},   public 0
+built comments:  4 commands, route /run/Comments/{proxy+},  public 1
+built posts:     5 commands, route /run/Posts/{proxy+},     public 2
+built profiles:  2 commands, route /run/Profiles/{proxy+},  public 0
+built reactions: 2 commands, route /run/Reactions/{proxy+}, public 1
+built uploads:   1 commands, route /run/Uploads/{proxy+},   public 0
+built authorizer: 0 commands, route -,                      public 0
 ```
+
+(The routes are the connector's own paths, `/run/<Domain>/<Command>`, from
+`scoped_full_path`. An earlier version of this file said `/rpc/...` and gave
+posts 3 commands — both artefacts of a packager reading a stale manifest
+snapshot from `/tmp` instead of the running connector. It now fetches live.)
 
 Isolation, in the built artifacts:
 
@@ -202,6 +208,164 @@ What that took, and what it says:
   `requires_authentication`, so there is no hand-maintained list of public
   commands anywhere in the repo.
 
+## What a green test suite did not catch
+
+27 cucumber scenarios in a real browser, passing throughout. Then deploying
+found eight defects, in order:
+
+| # | Defect | Symptom |
+|---|--------|---------|
+| 1 | Authorizer declared an `identity_source` | Every anonymous caller 401'd; API Gateway never invoked the Lambda |
+| 2 | CloudFront `error_responses` are distribution-wide | The API's 403 came back as `200` serving `index.html` |
+| 3 | Tables built with no GSIs | Feed 500'd: `Query` on `posts_by_recency` refused |
+| 4 | CDK omits index ARNs unless a table declares an index | The same failure again, one layer down, after the GSIs existed |
+| 5 | `dynamodb:ListTables` never granted | Every write 500'd — Dynamoid probes table existence on first write |
+| 6 | S3 presigning, delete and public URL never implemented | `NotImplementedError: not wired in the skeleton` |
+| 7 | `require "aws-sdk-s3"` placed inside an argument expression | `uninitialized constant Aws::S3` — Ruby resolves the constant first |
+| 8 | Ruby 4.0 ships no XML library as a default gem | Unit booted, then died on the first S3 call |
+
+Plus a ninth that is not a defect but behaves like one: the custom domain lived
+in an environment variable, so a deploy that forgot it produced a stack with no
+certificate, no records and no alias — and would have deleted them on the next
+run. Config that exists only in a shell history is not config.
+
+**Why the suite missed all of them.** Every one lives in a seam the suite does
+not have. It exercises a different storage path (the dev object store in
+`config.ru`, not S3), a different identity path (dev personas over a cookie, not
+Cognito claims), a single process (no API Gateway, no CloudFront, no IAM), and
+tables created by the app itself through `Dynamoid.create_table` — which reads
+the same model metadata the CDK stack was failing to restate, so it could not
+possibly disagree with it.
+
+That last one is worth dwelling on. The local suite passed *because* it built
+its tables from the models. The deployed stack failed *because* it didn't. A
+test can only catch drift between two things it actually compares.
+
+**What would have caught them, cheaply.** Not more cucumber. Three things, in
+descending order of yield:
+
+1. **A post-deploy contract check** — a dozen HTTP requests against the deployed
+   URL asserting status codes: public command anonymously (200), gated without a
+   token (401), gated with a forged dev header (401), gated with an invalid
+   token (**not** a 200, and `application/json`), a client route (200 HTML),
+   `/config.json` (200 JSON). That is defects 1, 2, 3, 5 and 9 — five of nine —
+   in about thirty lines. It is the single highest-value thing missing here.
+2. **Running a real command inside the packaged artifact**, not merely booting
+   it. The packager already boots each unit in the SAM image, and that caught
+   nothing: booting exercises no code path that matters. Invoking one command
+   per unit against real config found defects 6, 7 and 8 immediately, and found
+   them *before* deploying rather than after.
+3. **Asserting the synthesised template**, not just that synthesis succeeds. The
+   checks I ran by hand afterwards — does the authorizer declare an identity
+   source, does the distribution declare error responses, do the tables declare
+   the indexes their models declare — are template assertions, and they are the
+   only ones that could have caught defects 1, 2 and 3 with no AWS account at
+   all.
+
+The general shape: this suite tests **the app**, thoroughly. Nothing tested
+**the deployment**, and a serverless deployment is not configuration — it is a
+distributed system with its own failure modes, most of which are permissions,
+routing and edge behaviour. Neither framework has anything to say about that.
+
+## Detaching from Prospect
+
+Complete. `foobara` depends on no part of Prospect, and nothing in the app,
+packaging, or synthesis references it.
+
+What it took:
+
+- **The optional-auth Lambda authorizer** was the last real dependency and the
+  only one that had earned its place — it is genuinely framework-independent.
+  Ported to `lib/bookface_authorizer.rb`, keyed on Foobara's own command names
+  (`Posts::ListPosts`) rather than translating them to Prospect's dotted form,
+  and with defect 1 above fixed. The authorizer unit went from 2.3MB to **576K**:
+  one file, one gem (`jwt`).
+- **Deleting what the port had left behind.** `app/services/`, `app/schema/`,
+  `app_router.rb`, `app/context.rb` and `common.gemfile` — 52K of Prospect-era
+  code that nothing required, but which the packager copied into *every* unit.
+  Dead code you do not load still ships.
+- Renaming `PROSPECT_*` environment variables and dropping the GitHub Packages
+  credential plumbing, which existed solely to fetch the prospect gem into the
+  authorizer's build container.
+
+What is worth saying about the result: none of the deployment machinery cared.
+The packager, the stack, the handler template and the manifest-derived topology
+were already framework-independent — which is the same conclusion as the CDK
+port above, arrived at from the other direction.
+
+## Connectors worth building
+
+Everything bespoke in this repo falls into three groups, and each is a connector
+Foobara does not have. Listed with what already exists here as a prototype.
+
+### 1. An AWS Lambda connector
+
+`Foobara::CommandConnectors::AwsLambda` — the event adapter that currently lives
+in the generated handler (`script/package_from_manifest.rb`). It maps an API
+Gateway v2 payload to what the Rack connector wants, and identity from
+`requestContext.authorizer.lambda` to the caller.
+
+Small, and the least interesting of the three, but it is the piece that makes
+"Foobara in Lambda" a one-liner instead of a generated file. The Rack connector
+already does the real work — this is thirty lines of event translation.
+
+### 2. A CDK connector
+
+The larger and more valuable one: `connect(Domain)` already describes a
+deployment unit, and the manifest already describes the whole topology. What is
+missing is the thing that reads it and produces infrastructure.
+
+The prototype here is `script/package_from_manifest.rb` plus
+`infra/stacks/bookface_stack.rb`, and the split between them is the design
+worth keeping: **packaging emits a description, synthesis consumes it.** That
+keeps the CDK app free of the application's gems, and it means synthesis cannot
+route to an artifact that was never built. `dynamoid-cdk-schema` 0.2.0 gained
+`dump`/`table_from` for exactly this reason, and the same shape applies here.
+
+**The one thing the manifest cannot supply is deployment metadata.** Prospect
+declared `deploy memory: 1769, timeout: 60` on the one procedure that fans out
+across a whole comment tree. Foobara describes what a command *is*, not how it
+should be run — a defensible line, but something has to carry it. Either Foobara
+grows a place for it (a `deploy` block, or generic command metadata the manifest
+passes through), or a connector defines a side-car file. The former is better:
+sizing is a property of the command, and the person who knows a command fans out
+across a thread is the person writing it.
+
+### 3. A Cognito / optional-auth connector
+
+The most interesting, because building it surfaced a gap in Foobara itself.
+
+Foobara's `authenticator:` runs only for commands declaring
+`requires_authentication`. That conflates two different questions:
+
+- **Is this caller allowed in?** — a gate, per command. Foobara models this.
+- **Who is this caller?** — identity, which a *public* command may still need.
+  Foobara has nowhere to put it.
+
+bookface has four commands that are public and viewer-aware: `Posts::ListPosts`
+and `Posts::GetPost` mark your own posts editable, `Reactions::MyReactions`
+returns your own reactions. They must be readable signed out and must know the
+caller when signed in. Under Foobara alone they cannot: the connector skips
+authentication for them entirely, so they never learn who is calling.
+
+The workaround here is Rack middleware writing a thread-local, which the
+handler and `config.ru` both do. It works and it is ugly — a thread-local is
+exactly what Foobara's design is trying to avoid, and the idiomatic answer
+(a request mutator injecting the caller as an input) does not fit a command
+whose inputs should not mention the viewer.
+
+**What a connector should offer instead:** `authenticator:` for the gate, and
+something like `identifier:` (or `authenticator:` plus
+`requires_authentication: :optional`) for identity — always run, never refuses,
+and its result reaches the command the same way. Then the same Cognito
+verification serves both, and the four public commands stop needing a
+thread-local.
+
+The AWS half of this is already built and framework-independent:
+`lib/bookface_authorizer.rb` decides per command from `rawPath`, using the public
+list the manifest derives. Pair it with a `Foobara::Auth`-shaped verifier for the
+in-process side and the whole story is one gem.
+
 ## What this means
 
 The RPC half of Prospect is a worse duplicate of Foobara and should go. The
@@ -209,4 +373,12 @@ deployment half — per-unit packaging, gem slicing, CDK synthesis, the
 optional-auth Lambda authorizer, the cold-start defaults — is not duplicated by
 anything and works on top of the manifest with the router swapped out.
 
-That is a connector, not a framework.
+That is a connector, not a framework. Three of them, per the section above: a
+Lambda event adapter, a CDK connector driven by the manifest, and a Cognito
+connector that can answer "who is calling" for a command that does not require
+authentication.
+
+The last one is the only place this exercise found a gap in Foobara's own model
+rather than in its tooling. Everything else — the generator bugs, the missing
+deployment metadata — is addable without disturbing anything. Optional identity
+is not: it needs a concept that is currently absent.

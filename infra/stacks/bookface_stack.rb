@@ -265,9 +265,10 @@ class BookfaceStack < AWSCDK::Stack
   # Reactions::MyReactions returns the caller's own reactions — and under a JWT
   # authorizer they could never see a signed-in caller.
   #
-  # Prospect::Authorizer is reused unchanged. It is the one piece of Prospect
-  # this branch still depends on, and reasonably so: optional auth is a property
-  # of API Gateway rather than of whatever framework sits behind it.
+  # lib/bookface_authorizer.rb, which replaced Prospect::Authorizer — the last
+  # thing this branch took from Prospect. Optional auth is a property of API
+  # Gateway rather than of the framework behind it, so it is a candidate for a
+  # Foobara connector rather than an app file; see FOOBARA.md.
   def build_authorizer(pool, client)
     fn = AWSCDK::Lambda::Function.new(@scope, "Authorizer", {
       runtime: AWSCDK::Lambda::Runtime.RUBY_4_0,
@@ -281,14 +282,14 @@ class BookfaceStack < AWSCDK::Stack
         # IMPORTED pool exposes user_pool_id but not user_pool_provider_url.
         # This is the same string the Rails stack passes its app as
         # COGNITO_ISSUER, and what the tokens actually carry in `iss`.
-        "PROSPECT_ISSUER"   => "https://cognito-idp.#{region}.amazonaws.com/#{USER_POOL_ID}",
-        "PROSPECT_AUDIENCE" => client.user_pool_client_id,
+        "BOOKFACE_ISSUER"   => "https://cognito-idp.#{region}.amazonaws.com/#{USER_POOL_ID}",
+        "BOOKFACE_AUDIENCE" => client.user_pool_client_id,
         # Derived from the manifest's requires_authentication, via units.json.
         # There is no hand-maintained list of public commands anywhere in this
         # repo — declaring `connect(command, requires_authentication: …)` in
         # config.ru is what puts a command in or out of it.
-        "PROSPECT_ANONYMOUS" => @plan.fetch("anonymous").join(","),
-        "PROSPECT_MOUNT"     => @plan.fetch("mount")
+        "BOOKFACE_ANONYMOUS" => @plan.fetch("anonymous").join(","),
+        "BOOKFACE_MOUNT"     => @plan.fetch("mount")
       }
     })
 

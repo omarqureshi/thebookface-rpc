@@ -55,17 +55,15 @@ end
 MOUNT = "/run"
 
 # The authorizer is a deployment unit but not a domain unit: it serves no
-# commands and needs none of the app's code, only prospect and jwt (see
-# units/authorizer.gemfile). It is the one piece of Prospect that survives this
-# branch intact, because optional auth is a property of API Gateway, not of
-# whatever framework sits behind it.
+# commands and needs none of the app's code — only lib/bookface_authorizer.rb
+# and jwt (see units/authorizer.gemfile).
 AUTHORIZER = "authorizer"
 
-# Prospect::Authorizer derives a procedure id from rawPath by splitting after
-# the mount and joining with "." — so /run/Posts/ListPosts becomes
-# "Posts.ListPosts". Same list as each unit's `public`, flattened, and still
-# derived from requires_authentication rather than maintained by hand.
-anonymous = units.flat_map { |u| u[:public] }.map { |name| name.tr(":", ".").squeeze(".") }.sort
+# Foobara's own full command names, untranslated: the authorizer derives
+# "Posts::ListPosts" from the path /run/Posts/ListPosts, which is the key the
+# manifest files that command under. Still derived from requires_authentication
+# rather than maintained by hand.
+anonymous = units.flat_map { |u| u[:public] }.sort
 
 # --- one handler per unit ----------------------------------------------------
 # `connect(Domain)` is what makes a unit a subset: the other domains are never
@@ -74,18 +72,18 @@ def authorizer_source
   <<~RUBY
     # Generated from the Foobara manifest. Do not edit.
     #
-    # Optional-auth Lambda authorizer, unchanged from the Prospect branch: it
-    # verifies a token when one is present and lets anonymous callers through
-    # on the commands the manifest says do not require authentication.
-    # Configuration arrives from the environment the stack sets.
+    # Optional-auth Lambda authorizer: verifies a token when one is present and
+    # lets anonymous callers through on the commands the manifest says do not
+    # require authentication. Configuration arrives from the environment the
+    # stack sets, so this file is identical across deployments.
     require_relative "vendor/bundle/bundler/setup"
-    require "prospect/authorizer"
+    require_relative "bookface_authorizer"
 
-    HANDLER = Prospect::Authorizer.handler(
-      issuer:    ENV.fetch("PROSPECT_ISSUER"),
-      audience:  ENV.fetch("PROSPECT_AUDIENCE", "").split(","),
-      anonymous: ENV.fetch("PROSPECT_ANONYMOUS", "").split(","),
-      mount:     ENV.fetch("PROSPECT_MOUNT", "/run")
+    HANDLER = BookfaceAuthorizer.handler(
+      issuer:    ENV.fetch("BOOKFACE_ISSUER"),
+      audience:  ENV.fetch("BOOKFACE_AUDIENCE", "").split(","),
+      anonymous: ENV.fetch("BOOKFACE_ANONYMOUS", "").split(","),
+      mount:     ENV.fetch("BOOKFACE_MOUNT", "/run")
     )
 
     def handle(event:, context:)
@@ -190,26 +188,6 @@ def handler_source(unit)
   RUBY
 end
 
-# Only the authorizer needs this, and only because prospect is a private gem.
-def github_packages_credential
-  from_env = ENV["BUNDLE_RUBYGEMS__PKG__GITHUB__COM"]
-  return from_env if from_env && !from_env.empty?
-
-  # Bundler.settings, NOT `bundle config get` — the CLI redacts credentials in
-  # its output, so parsing it yields the literal "user:[REDACTED]" and the
-  # build fails complaining the brackets need CGI escaping.
-  require "bundler"
-  configured = Bundler.settings["rubygems.pkg.github.com"].to_s
-  return configured unless configured.empty?
-
-  abort <<~MSG
-    No credential for rubygems.pkg.github.com, needed to fetch the prospect gem
-    (for Prospect::Authorizer) inside the build container. Set one with:
-
-      bundle config set --global rubygems.pkg.github.com USER:TOKEN
-  MSG
-end
-
 FileUtils.mkdir_p(OUT)
 (units + [{ name: AUTHORIZER, commands: [], route: nil, public: [] }]).each do |unit|
   authorizer = unit[:name] == AUTHORIZER
@@ -219,7 +197,14 @@ FileUtils.mkdir_p(OUT)
   # The authorizer gets no app code: it verifies a token and answers yes or no,
   # so Dynamoid and the domains would be dead weight on the cold start of every
   # authenticated request.
-  %w[app config].each { |s| FileUtils.cp_r(File.join(ROOT, s), dir) } unless authorizer
+  if authorizer
+    # Just the one file: the authorizer verifies a token and answers yes or no,
+    # so the domains and Dynamoid would be dead weight on the cold start of
+    # every authenticated request.
+    FileUtils.cp(File.join(ROOT, "lib", "bookface_authorizer.rb"), dir)
+  else
+    %w[app config].each { |s| FileUtils.cp_r(File.join(ROOT, s), dir) }
+  end
   File.write(File.join(dir, "handler.rb"), authorizer ? authorizer_source : handler_source(unit))
 
   gemfile = File.join(ROOT, "units", "#{unit[:name]}.gemfile")
@@ -230,9 +215,6 @@ FileUtils.mkdir_p(OUT)
     FileUtils.mkdir_p(vendor)
     ok = system("docker", "run", "--rm", "--platform", "linux/amd64",
                 "--user", "#{Process.uid}:#{Process.gid}", "-e", "HOME=/tmp",
-                # The authorizer's gemfile fetches prospect from GitHub
-                # Packages, and the container inherits nothing from the host.
-                "-e", "BUNDLE_RUBYGEMS__PKG__GITHUB__COM=#{github_packages_credential}",
                 "-v", "#{ROOT}:#{ROOT}", "-v", "#{vendor}:/vendor", "-w", ROOT,
                 "--entrypoint", "bash", IMAGE, "-c",
                 "set -e; export BUNDLE_GEMFILE=#{gemfile} BUNDLE_PATH=/vendor; " \

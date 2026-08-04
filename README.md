@@ -1,23 +1,14 @@
-# bookface-rpc
+# bookface-rpc (foobara branch)
 
-Bookface as a [Prospect](../../prospect) app — one service per controller, each
-a Lambda. See [DESIGN.md](DESIGN.md). No UI.
+Bookface as a [Foobara](https://github.com/foobara) app — one **domain** per
+Lambda, with the deployment derived from Foobara's manifest. `main` is the same
+app built on [Prospect](../../prospect); the two exist to be compared. See
+[FOOBARA.md](FOOBARA.md) for what that comparison found, and [DESIGN.md](DESIGN.md)
+for Prospect's own design.
 
-## Prerequisite: a GitHub Packages credential
-
-[prospect](https://github.com/omarqureshi/prospect) comes from GitHub Packages,
-which requires a credential **even though the package is public** — that is a
-GitHub Packages constraint, not a choice:
-
-```sh
-bundle config set --global rubygems.pkg.github.com YOUR_GITHUB_USER:YOUR_TOKEN
-```
-
-`script/package.rb` forwards it into the build container, since the container
-inherits nothing from the host. It reads `BUNDLE_RUBYGEMS__PKG__GITHUB__COM`
-first, so CI can pass one explicitly.
-
-The credential is only ever forwarded, never written into the artifact.
+Nothing here depends on Prospect any more. The last piece was the optional-auth
+Lambda authorizer, now `lib/bookface_authorizer.rb` — see FOOBARA.md on why that
+belongs in a connector rather than an app.
 
 ## Local
 
@@ -31,30 +22,27 @@ script/dev.sh smoke   # request smoke test
 script/dev.sh stop
 ```
 
-All five services run in **one** process locally; deployed they are five
-Lambdas. Both go through `Prospect::Dispatcher`, so behaviour can't drift.
+All five domains are connected to **one** connector locally; deployed each is its
+own Lambda running the same `Foobara::CommandConnectors::Http::Rack`. A unit does
+not refuse other domains' commands — it simply never registers them.
 
-There's no API Gateway locally and therefore no JWT authorizer, so identity
-comes from headers:
+There's no API Gateway locally and therefore no authorizer, so identity comes
+from headers (or a cookie, for the browser):
 
 ```sh
-curl -X POST localhost:9292/rpc/posts/create \
+curl -X POST localhost:9292/run/Posts/CreatePost \
   -H 'Content-Type: application/json' \
-  -H 'X-Dev-Sub: user-alice' -H 'X-Dev-Name: Alice' \
-  -d '{"body":"Hello from a procedure."}'
+  -H 'X-Dev-Sub: dev|ada' -H 'X-Dev-Name: Ada Lovelace' \
+  -d '{"body":"Hello from a command."}'
 ```
 
-A batched post view — three services, one round trip:
+Commands are served at `/run/<Domain>/<Command>`, from the manifest's
+`scoped_full_path`. `GET /manifest` is the manifest itself — packaging, the
+TypeScript SDK and the CDK stack are all derived from it.
 
-```sh
-curl -X POST 'localhost:9292/rpc?batch=1' -H 'Content-Type: application/json' -d '[
-  {"id":"posts.get","input":{"id":"<ID>"}},
-  {"id":"comments.thread","input":{"post_id":"<ID>"}},
-  {"id":"reactions.mine","input":{"post_id":"<ID>"}}
-]'
-```
-
-`GET /up` lists every registered procedure.
+Deployed, those dev headers are ignored: a unit honours them only when
+`BOOKFACE_DEV_IDENTITY=1`, which the stack never sets. Identity there is the
+verified claims from the authorizer.
 
 ### Routes
 
@@ -78,22 +66,29 @@ CloudFront distribution does it — see `infra/stacks/bookface_stack.rb`.
 ## Deploying
 
 ```sh
-bundle exec ruby script/package.rb    # Lambda artifacts
-cd web && npm run build               # SPA into web/dist
+script/dev.sh serve                              # serves /manifest
+bundle exec ruby script/package_from_manifest.rb # artifacts + units.json + tables.json
+cd web && npm run build                          # SPA into web/dist
 cd infra && bundle exec cdk deploy
 ```
 
-The SPA sits on S3 behind CloudFront, and **the API is on the same distribution
-at `/rpc/*`**. That is not a detail: it makes the client same-origin, so there is
-no CORS and no preflight — which matters because every request carries
-`X-Prospect-Schema`, a custom header that would otherwise make each one
-non-simple. It also means `createClient({ url: "/rpc" })` needs no build-time
-configuration, so the bundle is identical in every environment. The local Vite
-proxy points `/rpc` at the API for the same reason: dev and production agree.
+Packaging emits two files the stack reads: `units.json` (topology, from the
+manifest) and `tables.json` (storage, from the Dynamoid models via
+[dynamoid-cdk-schema](https://github.com/omarqureshi/dynamoid-cdk-schema)). So
+synthesis needs no running server and carries neither Foobara nor Dynamoid nor
+the app — and it cannot route to a Lambda whose artifact was never built.
 
-CloudFront rewrites 403 and 404 to `/index.html` with a 200, which is what makes
-`/posts/:id` survive a cold load or a refresh. S3 answers 403 rather than 404 for
-a missing key when access is via OAC, so both are needed.
+The SPA sits on S3 behind CloudFront, and **the API is on the same distribution
+at `/run/*`**, with images at `/media/*`. That is not a detail: it makes the
+client same-origin, so there is no CORS and no preflight, and it lets the bundle
+ship with no environment-specific URL (`RemoteCommand.urlBase = ""`). The local
+Vite proxy points `/run` at the API for the same reason: dev and production
+agree.
+
+The SPA history fallback is a **viewer-request CloudFront Function on the default
+behaviour only**, not `error_responses`. Custom error responses apply to the
+whole distribution, so the usual `403/404 -> /index.html 200` recipe also
+rewrites the API's own errors into a 200 HTML page — see FOOBARA.md.
 
 ## Frontend
 
@@ -102,36 +97,42 @@ script/dev.sh up                 # API on :9292
 cd web && npm install && npm run dev   # UI on :5173, proxies /rpc
 ```
 
-Types are **generated from the router**, never hand-written:
+The client is **generated from the manifest** by Foobara's own generator — 175
+files, no hand-written protocol:
 
 ```sh
-cd web && npm run schema         # -> src/api/schema.ts
+script/dev.sh serve                        # /manifest
+bundle exec ruby script/generate_ts.rb     # -> web/src/domains
 ```
 
-`src/api/client.ts` is hand-written and generic over the generated `Procedures`
-map — retries, batching and error decoding live there, so regenerating produces
-a legible type diff rather than a rewritten client.
+That script also applies three post-generation patches, each working around a
+generator bug documented in FOOBARA.md. `src/api/index.ts` is a thin adapter
+presenting the old `api.posts.feed({...})` shape over the generated command
+classes, so components did not have to be rewritten around a different call
+style.
 
-Two users are hardcoded in the header for switching identity, since there's no
-Cognito locally.
+Identity is chosen at runtime by whether the stack deployed a `config.json`:
+Cognito (Authorization Code + PKCE against the hosted UI) when it did, two
+hardcoded dev personas when it did not. One bundle serves both.
 
 ## Packaging
 
 Builds one deployable artifact per service. Needs Docker.
 
 ```sh
-bundle exec ruby script/package.rb --dry-run   # what would be built
-bundle exec ruby script/package.rb             # build into build/
+bundle exec ruby script/package_from_manifest.rb
 ```
 
-Each artifact holds the app sources, a generated `handler.rb`, and a standalone
-gem bundle containing only that service's dependencies (`units/*.gemfile`).
-Services whose gemfiles resolve identically share one bundle build — 5 units
-currently collapse to 3.
+One artifact per **domain**, derived from the manifest: a unit's commands are
+whichever ones the manifest files under that domain, and its public list comes
+from `requires_authentication`. There is no hand-maintained list of either.
 
-Every artifact is booted in a Lambda-like container before the build succeeds.
-An unsound slice caught at build time is an inconvenience; caught at invoke time
-it is an outage.
+Each artifact holds the app sources, a generated `handler.rb`, and a standalone
+gem bundle containing only that unit's dependencies (`units/*.gemfile`). Units
+whose gemfiles resolve identically share one bundle build.
+
+The authorizer is a unit too, but not a domain one: it serves no commands and
+needs neither the app nor Foobara — one file and one gem, 576K.
 
 ## Cucumber
 
