@@ -10,6 +10,10 @@ gem "foobara-rack-connector"
 gem "foobara-typescript-remote-command-generator", group: :development
 
 gem "dynamoid", "~> 3.10"
+# Reads the Dynamoid models' keys and indexes and dumps them for the CDK stack
+# (script/dump_schema.rb), so infra never restates the schema. Path source until
+# 0.2.0 — which added the dump/table_from pair this needs — is published.
+gem "dynamoid-cdk-schema", path: "../dynamoid-cdk-schema"
 gem "aws-sdk-dynamodb", "~> 1"
 gem "cancancan", "~> 3.6"
 gem "rack", "~> 3.0"

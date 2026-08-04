@@ -259,3 +259,10 @@ File.write(File.join(OUT, "units.json"), JSON.pretty_generate(
   "units" => units.map { |u| u.transform_keys(&:to_s) }
 ))
 puts "wrote #{File.join(OUT, 'units.json')}: #{units.length} units, #{anonymous.length} public commands"
+
+# The other half the stack reads: the DynamoDB schema, from the Dynamoid models.
+# A subprocess because this script deliberately does not boot the app — it reads
+# the manifest over HTTP — and booting it here just to introspect four models
+# would drag Dynamoid into packaging's own load path.
+ok = system(RbConfig.ruby, File.expand_path("dump_schema.rb", __dir__))
+abort "schema dump failed" unless ok

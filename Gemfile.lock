@@ -1,3 +1,8 @@
+PATH
+  remote: ../dynamoid-cdk-schema
+  specs:
+    dynamoid-cdk-schema (0.2.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -193,6 +198,7 @@ DEPENDENCIES
   cucumber (~> 9.2)
   cuprite (~> 0.15)
   dynamoid (~> 3.10)
+  dynamoid-cdk-schema!
   foobara
   foobara-rack-connector
   foobara-typescript-remote-command-generator
@@ -231,6 +237,7 @@ CHECKSUMS
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
   drb (2.2.3) sha256=0b00d6fdb50995fe4a45dea13663493c841112e4068656854646f418fda13373
   dynamoid (3.14.0) sha256=e453b9227f455bc779e50689b2a6a8033b8486203b261114e02225ed40a0c40d
+  dynamoid-cdk-schema (0.2.0)
   ferrum (0.17.2) sha256=2c2540a850b211a46f4d81de21bfd62048f507e4c327d1807225c3823c17e6ee
   ffi (1.17.4-aarch64-linux-gnu) sha256=b208f06f91ffd8f5e1193da3cae3d2ccfc27fc36fba577baf698d26d91c080df
   ffi (1.17.4-aarch64-linux-musl) sha256=9286b7a615f2676245283aef0a0a3b475ae3aae2bb5448baace630bb77b91f39

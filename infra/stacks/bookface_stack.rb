@@ -3,6 +3,10 @@
 require "json"
 require "aws-cdk-lib"
 require "constructs"
+# Builds the tables from build/tables.json. The gem's other half reads the
+# Dynamoid models (script/dump_schema.rb); this half needs neither Dynamoid nor
+# the app, which is why synthesis still depends only on what was built.
+require "dynamoid/cdk/schema"
 
 # The whole deployment, driven by build/units.json.
 #
@@ -75,12 +79,19 @@ class BookfaceStack < AWSCDK::Stack
 
     @domain = ENV["BOOKFACE_DOMAIN"] || DOMAINS[stage]
     @plan = JSON.parse(File.read(File.join(BUILD, "units.json")))
+    @tables_plan = JSON.parse(File.read(File.join(BUILD, "tables.json")))
 
-    posts     = table(id: "Posts",     partition: "id")
-    comments  = table(id: "Comments",  partition: "post_id", sort: "path")
-    # Sort key is `sk` ("<user_sub>#<target>"), matching Reaction's `range :sk`.
-    reactions = table(id: "Reactions", partition: "post_id", sort: "sk")
-    profiles  = table(id: "Profiles",  partition: "sub")
+    # Tables come from build/tables.json, which script/dump_schema.rb reads off
+    # the Dynamoid models. They used to be hand-written here with keys only and
+    # no indexes, while Post declares two GSIs and Comment one — so the deployed
+    # feed 500'd on every request, and CDK made it worse by omitting index ARNs
+    # from the grant (it adds `/index/*` only when the table declares an index).
+    # Restating a schema in infra is how the two drift; this is the same reason
+    # the topology comes from the manifest.
+    tables = {}
+    @tables_plan.each { |spec| tables[spec.fetch("id")] = table(spec) }
+    posts, comments, reactions, profiles =
+      tables.values_at("Posts", "Comments", "Reactions", "Profiles")
 
     media = AWSCDK::S3::Bucket.new(self, "Media", {
       removal_policy: AWSCDK::RemovalPolicy::DESTROY,
@@ -131,14 +142,10 @@ class BookfaceStack < AWSCDK::Stack
       }
     })
 
-    environment = {
-      "BOOKFACE_ENV"    => stage,
-      "POSTS_TABLE"     => posts.table_name,
-      "COMMENTS_TABLE"  => comments.table_name,
-      "REACTIONS_TABLE" => reactions.table_name,
-      "PROFILES_TABLE"  => profiles.table_name,
-      "MEDIA_BUCKET"    => media.bucket_name
-    }
+    # Env var names come from the same file, so adding a model is a change in one
+    # place rather than three.
+    environment = { "BOOKFACE_ENV" => stage, "MEDIA_BUCKET" => media.bucket_name }
+    @tables_plan.each { |spec| environment[spec.fetch("env")] = tables.fetch(spec.fetch("id")).table_name }
 
     # The API and its functions hang off a child construct rather than the stack
     # itself, which is what Prospect::CDK::Service gave for free: at stack level
@@ -446,13 +453,14 @@ class BookfaceStack < AWSCDK::Stack
     )
   end
 
-  def table(id:, partition:, sort: nil)
-    props = {
-      partition_key:  { name: partition, type: AWSCDK::DynamoDB::AttributeType::STRING },
+  # Keys and indexes come from the model via the dumped schema; everything the
+  # model does not describe — removal policy, billing, PITR — stays here, which
+  # is the split the gem draws.
+  def table(spec)
+    Dynamoid::CDK::Schema.table_from(
+      self, spec.fetch("id"), spec.fetch("schema"),
       removal_policy: AWSCDK::RemovalPolicy::DESTROY
-    }
-    props[:sort_key] = { name: sort, type: AWSCDK::DynamoDB::AttributeType::STRING } if sort
-    AWSCDK::DynamoDB::TableV2.new(self, id, props)
+    )
   end
 
   # CloudFormation logical ids must be alphanumeric.

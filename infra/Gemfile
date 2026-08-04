@@ -5,6 +5,11 @@ source "https://rubygems.org"
 # still deployed, but it is fetched inside the authorizer unit's own build —
 # see units/authorizer.gemfile.)
 
+# Builds the tables from build/tables.json. Note what is NOT here: dynamoid.
+# The gem stopped declaring it in 0.2.0 precisely so an infra bundle building
+# from dumped data need not install the application's ORM.
+gem "dynamoid-cdk-schema", path: "../../dynamoid-cdk-schema"
+
 source "https://rubygems.omarqureshi.net" do
   gem "aws-cdk-lib", ">= 0.0.0.pre"
   gem "constructs", ">= 0.0.0.pre"
