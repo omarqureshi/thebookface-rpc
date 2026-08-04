@@ -5,3 +5,8 @@ gem "dynamoid", "~> 3.10"
 gem "aws-sdk-dynamodb", "~> 1"
 gem "cancancan", "~> 3.6"
 gem "aws-sdk-s3", "~> 1"
+# aws-sdk-core parses S3's XML responses and Ruby 4.0 no longer ships an XML
+# library as a default gem, so without this the unit boots and then dies on the
+# first S3 call: "Unable to find a compatible xml library". Only the S3 units
+# need it — DynamoDB speaks JSON, which is why nothing else does.
+gem "rexml"

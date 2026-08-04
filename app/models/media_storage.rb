@@ -1,12 +1,23 @@
 # frozen_string_literal: true
 
-# S3 media, kept deliberately thin. Locally there is no S3 — presigning returns
-# a fake target so `uploads.presign` is exercisable without LocalStack, and the
-# ownership rule (which is a *security* check, not an integration) runs for real.
+# S3 media, kept deliberately thin.
+#
+# Locally there is no S3: presigning points at the dev object store in config.ru
+# so the browser really stores bytes and the image renders, and the ownership
+# rule (a *security* check, not an integration) runs for real either way.
+#
+# Deployed, this talks to S3. aws-sdk-s3 is required lazily rather than in
+# config/boot: only the units that touch media carry it (see units/*.gemfile),
+# and requiring it up front would break comments and reactions on boot.
 require "fileutils"
 
 module MediaStorage
   ALLOWED_TYPES = %w[image/jpeg image/png image/gif image/webp].freeze
+
+  # Signed into the upload policy, so these are enforced by S3 rather than by
+  # the browser being polite.
+  MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+  UPLOAD_WINDOW = 300 # seconds
 
   module_function
 
@@ -30,7 +41,30 @@ module MediaStorage
         fields: { "key" => key, "Content-Type" => content_type },
         key: key }
     else
-      raise NotImplementedError, "real S3 presigning not wired in the skeleton"
+      # A presigned POST, not a PUT: the browser submits a form, which is what
+      # makes the dev object store in config.ru the same shape as S3 and lets
+      # web/src/upload.ts be identical in both.
+      #
+      # The conditions are the point. They are signed, so the browser cannot
+      # widen them: it may write this exact key and no other (so a caller cannot
+      # write outside its own prefix), with this content type, up to this size,
+      # for the next five minutes.
+      # Required BEFORE the constant is mentioned, not inside s3_client: Ruby
+      # resolves Aws::S3::PresignedPost before evaluating the arguments, so a
+      # require hidden in one of them runs too late.
+      require "aws-sdk-s3"
+
+      post = Aws::S3::PresignedPost.new(
+        s3_client.config.credentials,
+        s3_client.config.region,
+        bucket,
+        key: key,
+        content_type: content_type,
+        content_length_range: 1..MAX_UPLOAD_BYTES,
+        signature_expiration: Time.now + UPLOAD_WINDOW
+      )
+
+      { url: post.url, fields: post.fields, key: key }
     end
   end
 
@@ -38,18 +72,39 @@ module MediaStorage
   # behaviour the suite can assert rather than a claim in a comment.
   def delete_objects(keys)
     return if keys.empty?
+
     unless local?
-      raise NotImplementedError, "real S3 delete not wired in the skeleton"
+      # Batched: deleting a post reaps every image on it, and one call per key
+      # would make deleting a photo-heavy post slow enough to matter.
+      keys.each_slice(1000) do |batch|
+        s3_client.delete_objects(
+          bucket: bucket, delete: { objects: batch.map { |k| { key: k.to_s } } }
+        )
+      end
+      return
     end
 
     keys.each { |k| FileUtils.rm_f(path_for(k)) }
   end
+
+  def bucket = ENV.fetch("MEDIA_BUCKET")
+
+  def s3_client
+    require "aws-sdk-s3"
+    # Memoised at cold-start scope: building a client per request costs a
+    # credential lookup and an endpoint resolve for no benefit.
+    @s3_client ||= Aws::S3::Client.new
+  end
+
 
   # Where the dev object store keeps bytes. config.ru serves from here.
   def local_dir = ENV.fetch("BOOKFACE_MEDIA_DIR", File.expand_path("../../tmp/media", __dir__))
 
   def path_for(key) = File.join(local_dir, key.to_s.tr("/", "_"))
 
+  # Deployed, BOOKFACE_MEDIA_URL is this app's own /media path on CloudFront —
+  # so the bucket stays private (CloudFront reads it through an Origin Access
+  # Control) and images are same-origin. Locally it is the dev object store.
   def public_url(key) = "#{ENV.fetch('BOOKFACE_MEDIA_URL', 'http://localhost:9292/media')}/#{key}"
 
   def local? = ENV.fetch("BOOKFACE_ENV", "local") == "local"

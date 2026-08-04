@@ -188,7 +188,14 @@ class BookfaceStack < AWSCDK::Stack
     media.grant_put(function("uploads"))
     media.grant_delete(function("posts"))                # reap on delete
 
-    site = deploy_site(client)
+    site = deploy_site(client, media)
+
+    # Set after the fact rather than in `environment`: the value depends on the
+    # distribution, which depends on the functions. add_environment breaks that
+    # cycle — the same shape as the Rails stack handing its function the Cognito
+    # client id after the client exists.
+    media_url = @domain ? "https://#{@domain}/media" : "https://#{site.distribution_domain_name}/media"
+    @functions.each_value { |fn| fn.add_environment("BOOKFACE_MEDIA_URL", media_url) }
 
     AWSCDK::CfnOutput.new(self, "ApiUrl", { value: @api.url })
     AWSCDK::CfnOutput.new(self, "SiteUrl",
@@ -308,7 +315,7 @@ class BookfaceStack < AWSCDK::Stack
   # Assets must be built first, the same way Lambda artifacts must be:
   #
   #   cd web && npm run build
-  def deploy_site(client)
+  def deploy_site(client, media)
     bucket = AWSCDK::S3::Bucket.new(self, "Site", {
       removal_policy: AWSCDK::RemovalPolicy::DESTROY,
       auto_delete_objects: true
@@ -330,6 +337,16 @@ class BookfaceStack < AWSCDK::Stack
         function handler(event) {
           var uri = event.request.uri
           if (uri.indexOf('.') === -1) { event.request.uri = '/index.html' }
+          return event.request
+        }
+      JS
+    })
+
+    media_router = AWSCDK::CloudFront::Function.new(self, "MediaRouter", {
+      runtime: AWSCDK::CloudFront::FunctionRuntime.JS_2_0,
+      code: AWSCDK::CloudFront::FunctionCode.from_inline(<<~JS)
+        function handler(event) {
+          event.request.uri = event.request.uri.replace(/^\\/media/, '')
           return event.request
         }
       JS
@@ -361,6 +378,21 @@ class BookfaceStack < AWSCDK::Stack
       },
 
       additional_behaviors: {
+        # Images come off the same distribution, so the media bucket needs no
+        # public access at all — CloudFront reads it through an Origin Access
+        # Control, exactly as the site bucket is read. Uploads still go straight
+        # to S3 with a presigned POST; only reads come through here.
+        "/media/*" => {
+          origin: AWSCDK::CloudFrontOrigins::S3BucketOrigin.with_origin_access_control(media),
+          viewer_protocol_policy: AWSCDK::CloudFront::ViewerProtocolPolicy::REDIRECT_TO_HTTPS,
+          # Strips the /media prefix: the object key is "u/<sub>/<uuid>.jpeg",
+          # while the request path is "/media/u/<sub>/<uuid>.jpeg". Without this
+          # CloudFront would ask S3 for an object called "media/u/...".
+          function_associations: [{
+            function: media_router,
+            event_type: AWSCDK::CloudFront::FunctionEventType::VIEWER_REQUEST
+          }]
+        },
         # /run/*, not /rpc/* — the connector's own paths. Never cached, all
         # methods forwarded, and the Host header dropped, because API Gateway
         # rejects a request whose Host is the CloudFront domain.
