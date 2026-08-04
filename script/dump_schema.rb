@@ -31,17 +31,18 @@ require_relative "../config/boot"
 #   key — how the stack refers to a table when granting access. Stable forever.
 #   id  — the CloudFormation logical id. Changing it REPLACES the table.
 #
-# They were the same string until Posts needed both its GSIs at once:
-# CloudFormation allows only one GSI creation or deletion per table per update,
-# so adding two to a live table is impossible in a single deploy ("Cannot
-# perform more than one GSI creation or deletion in a single update"). Deploying
-# twice would work; replacing the table does it in one, which is the right trade
-# only because these tables are empty. On a table with data, deploy twice.
+# They are the same string today. The split exists because they will not always
+# be: CloudFormation allows only one GSI creation or deletion per table per
+# update ("Cannot perform more than one GSI creation or deletion in a single
+# update"), so adding two indexes to a live table needs either two deploys or a
+# replacement — and a replacement means changing the logical id. Keeping `key`
+# separate makes that a one-word change here, with the stack's grants untouched.
 #
-# Keeping `key` separate means a future replacement is a one-line change here
-# and the stack's grants are untouched.
+# This bit for real: Posts gained two GSIs at once. The stack was torn down and
+# rebuilt rather than versioning the id, which was only affordable because the
+# tables were empty. On a table with data: deploy twice, one index at a time.
 MODELS = {
-  "Posts"     => { model: Post,     id: "PostsV2",   env: "POSTS_TABLE" },
+  "Posts"     => { model: Post,     id: "Posts",     env: "POSTS_TABLE" },
   "Comments"  => { model: Comment,  id: "Comments",  env: "COMMENTS_TABLE" },
   "Reactions" => { model: Reaction, id: "Reactions", env: "REACTIONS_TABLE" },
   "Profiles"  => { model: Profile,  id: "Profiles",  env: "PROFILES_TABLE" }

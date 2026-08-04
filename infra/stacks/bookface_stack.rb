@@ -98,6 +98,12 @@ class BookfaceStack < AWSCDK::Stack
 
     media = AWSCDK::S3::Bucket.new(self, "Media", {
       removal_policy: AWSCDK::RemovalPolicy::DESTROY,
+      # Both, or neither. DESTROY alone is a trap: the bucket is empty today so
+      # a teardown works, but the first uploaded image would make `cdk destroy`
+      # fail on a non-empty bucket — discovered at exactly the wrong moment.
+      # Uploads here are as disposable as the tables; production would use
+      # RETAIN for both.
+      auto_delete_objects: true,
       cors: [{
         allowed_methods: [AWSCDK::S3::HttpMethods::POST],
         allowed_origins: ["*"],
