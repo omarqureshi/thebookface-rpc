@@ -54,7 +54,7 @@ GEM
       foobara-lru-cache (< 2.0.0)
       foobara-util (< 2.0.0)
       inheritable-thread-vars (< 2.0.0)
-    foobara-aws (0.1.0)
+    foobara-aws (0.2.0)
     foobara-http-command-connector (1.1.5)
       foobara (>= 0.1.1, < 2.0.0)
     foobara-lru-cache (1.0.0)
@@ -91,7 +91,7 @@ DEPENDENCIES
   cancancan (~> 3.6)
   dynamoid (~> 3.10)
   foobara
-  foobara-aws (~> 0.1)
+  foobara-aws (~> 0.2)
   foobara-rack-connector
   rexml
 
@@ -114,7 +114,7 @@ CHECKSUMS
   drb (2.2.3) sha256=0b00d6fdb50995fe4a45dea13663493c841112e4068656854646f418fda13373
   dynamoid (3.14.0) sha256=e453b9227f455bc779e50689b2a6a8033b8486203b261114e02225ed40a0c40d
   foobara (0.5.10) sha256=f40391dd1e30141916191f423f9993c3f231da4090e6aa767eb87e63251cd959
-  foobara-aws (0.1.0) sha256=08a02ef8c2c965d9e02885c2a29927442ee9473fc92fe7a4e3227406b9bac972
+  foobara-aws (0.2.0) sha256=06238bd28691c9a2f9132602865286e3635c70a4d3a0d2b432d7dc38feeb0f28
   foobara-http-command-connector (1.1.5) sha256=d8bcb4fb861741f86e7cea1f6deaa23c0e8885e476d4aa01b81f13bdba00aa32
   foobara-lru-cache (1.0.0) sha256=ff9716e011a4642382dc0e1fd7a80751134b1fbf97d180fd333472a5d20f2029
   foobara-rack-connector (0.1.3) sha256=8278d535c0bbc03b8f7d4cff65e7314e8890777291c93d22283c339172678089
