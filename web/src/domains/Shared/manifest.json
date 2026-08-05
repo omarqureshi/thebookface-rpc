@@ -1,0 +1,27 @@
+{
+  "scoped_path": [
+    "Shared"
+  ],
+  "scoped_short_name": "Shared",
+  "types": [
+    "Shared::Author",
+    "Shared::MediaItem",
+    "Shared::MediaUpload",
+    "Shared::ReactionCount"
+  ],
+  "commands": [],
+  "domain": "Shared",
+  "organization": "global_organization",
+  "parent": [
+    "organization",
+    "global_organization"
+  ],
+  "reference": "Shared",
+  "scoped_category": "domain",
+  "scoped_full_name": "Shared",
+  "scoped_full_path": [
+    "Shared"
+  ],
+  "scoped_name": "Shared",
+  "scoped_prefix": null
+}

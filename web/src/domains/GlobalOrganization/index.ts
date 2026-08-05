@@ -9,6 +9,8 @@ export * as Profiles from ".././Profiles"
 
 export * as Reactions from ".././Reactions"
 
+export * as Shared from ".././Shared"
+
 export * as Uploads from ".././Uploads"
 
 export * as GlobalDomain from ".././GlobalDomain"

@@ -1,127 +1,142 @@
 # frozen_string_literal: true
 #
-# Foobara's own TypeScript SDK generator — the counterpart to `prospect emit ts`.
+# Generates the TypeScript client from the manifest, using Foobara's own
+# generator, and then patches three things in its output that do not work.
 #
+#   script/dev.sh serve                     # then
 #   bundle exec ruby script/generate_ts.rb
 #
-# The manifest is captured BEFORE the generator is required. Loading it
-# registers its own commands, one of which declares `possible_error
-# :missing_manifest` with no context type — and a context-less error breaks
-# Foobara.manifest for the whole process. Worth reporting upstream.
-# Deliberately does NOT boot the app: the generator needs the CONNECTOR's
-# manifest, not Foobara.manifest. Connector-level data — `serializers`,
-# `requires_authentication` — only exists once commands are connected, and the
-# generator fails on its absence with "undefined local variable or method
-# 'serializers'".
+# It reads the manifest over HTTP from the RUNNING connector rather than from
+# this process. Two reasons, both learned the hard way:
 #
-#   script/dev.sh serve    # then
-#   bundle exec ruby script/generate_ts.rb
+#   * `Foobara.manifest` lacks the fields the generator needs. `serializers` and
+#     `requires_authentication` are connector-level, so they exist only once
+#     commands are connected; without them the generator dies with "undefined
+#     local variable or method `serializers`", which names nothing useful.
+#   * It must be the manifest of the process the client will actually talk to.
+#     Pointing this at a different one is how the SDK silently regenerated
+#     against stale types.
+#
+# (`raw_manifest:` is not an alternative: `Foobara.manifest` has symbol VALUES
+# and fails with "Not sure how to convert :string to a TS type", while
+# `JSON.parse` of it has string keys and fails on `serializers`. Only
+# `symbolize_names: true` produces the shape it wants — which is what
+# `manifest_url:` does internally anyway.)
 
-# Round-tripped through JSON with symbolized KEYS, which is the shape the
-# generator expects and what it would get from manifest_url:
-#
-#   Foobara.manifest        symbol keys, SYMBOL values -> "Not sure how to
-#                           convert :string to a TS type"
-#   JSON.parse(...)         string keys, string values -> "undefined local
-#                           variable or method 'serializers'"
-#   symbolize_names: true   symbol keys, string values -> works
-#
-# Worth reporting: raw_manifest: and manifest_url: are not interchangeable, and
-# neither failure names the real problem.
 require "foobara/typescript_remote_command_generator"
 
-# The dev server on :9292 serves /manifest itself, so generation reads the
-# manifest of the very process it will be talking to. Pointing this at a
-# separate process is how the SDK silently regenerated against stale types.
+ROOT = File.expand_path("..", __dir__)
+GENERATED = File.join(ROOT, "web/src/domains")
 MANIFEST_URL = ENV.fetch("BOOKFACE_MANIFEST", "http://localhost:9292/manifest")
+
+# Applies one patch and REFUSES TO CONTINUE if it did not apply.
+#
+# This matters more than it looks. Every patch below matches exact generated
+# source, and `sub` returns the string unchanged when it does not match — so a
+# whitespace change upstream would leave the file untouched while this script
+# reported success. One of these patches works around a bug that `tsc` cannot
+# see and that only appears in a browser, so a silent no-op here is a green
+# build and a broken app.
+def patch!(path, description, skip_if:)
+  source = File.read(path)
+  return puts("  already patched: #{description}") if source.include?(skip_if)
+
+  patched = yield(source)
+
+  if patched == source
+    abort "FAILED to patch #{description} in #{path.delete_prefix("#{ROOT}/")}: " \
+          "the generated source no longer matches what this patch expects. " \
+          "Read the generated file and update script/generate_ts.rb."
+  end
+
+  File.write(path, patched)
+  puts "  patched: #{description}"
+end
 
 outcome = Foobara::RemoteGenerator::WriteTypescriptToDisk.run(
   manifest_url: MANIFEST_URL,
-  # output_directory is relative to the CWD, not project_directory.
-  output_directory: File.expand_path("../web/src/domains", __dir__)
+  # Relative to the CWD, not to project_directory.
+  output_directory: GENERATED
 )
 
-# POST-GENERATION PATCH, and a finding worth reporting.
+abort "FAILED: #{outcome.errors_hash}" unless outcome.success?
+
+puts "generated #{outcome.result.inspect}"
+
+# --- patch 1 -----------------------------------------------------------------
+# RequiresAuthCommand is emitted for every command declaring
+# requires_authentication, and imports ./utils/accessTokens and ./RefreshLogin —
+# neither of which the generator emits unless the app uses Foobara::Auth. Any
+# other auth scheme gets an SDK that does not compile.
 #
-# The generator emits RequiresAuthCommand for every command declaring
-# requires_authentication, and that file hard-imports ./utils/accessTokens and
-# ./RefreshLogin — which only exist if the app uses Foobara's own Auth domain.
-# bookface authenticates with a cookie, so the generated SDK does not compile
-# out of the box.
-#
-# Replaced with a pass-through: RemoteCommand already sends
-# credentials: "include", which is all cookie auth needs.
+# Replaced with a pass-through. This app sends a bearer token, which patch 3
+# attaches on the base class instead.
 AUTH_STUB = <<~TS
   import RemoteCommand from '../../base/RemoteCommand'
   import { type FoobaraError } from '../../base/Error'
 
-  // Replaced after generation — see script/generate_ts.rb. The generated
-  // version assumes Foobara's bearer-token Auth domain; this app uses a cookie,
-  // and RemoteCommand already sends credentials: "include".
+  // Replaced after generation — see script/generate_ts.rb. The generated version
+  // assumes Foobara's own Auth domain, whose helpers are not generated for an
+  // app that does not use it.
   export default class RequiresAuthCommand<Inputs, Result, Error extends FoobaraError<any>>
     extends RemoteCommand<Inputs, Result, Error> {
   }
 TS
 
-if outcome.success?
-  stub_path = File.expand_path("../web/src/domains/Foobara/Auth/RequiresAuthCommand.ts", __dir__)
-  if File.exist?(stub_path)
-    File.write(stub_path, AUTH_STUB)
-    puts "patched RequiresAuthCommand (cookie auth, not bearer)"
-  end
+auth_path = File.join(GENERATED, "Foobara/Auth/RequiresAuthCommand.ts")
+if File.exist?(auth_path)
+  patch!(auth_path, "RequiresAuthCommand (no Foobara::Auth here)",
+         skip_if: "Replaced after generation") { |_source| AUTH_STUB }
+end
 
-  # Second patch, second finding. RemoteCommand#_handleResponse calls
-  # this.dirtyQueries() on every success, but the generator only emits that
-  # method for apps that declare queries — so with none declared, every
-  # successful command raises a TypeError at runtime. A no-op restores it.
-  remote_path = File.expand_path("../web/src/domains/base/RemoteCommand.ts", __dir__)
-  remote = File.read(remote_path)
-  unless remote.include?("dirtyQueries (")
-    remote = remote.sub(
-      /^(\s*)outcome: null \| Outcome<Result, CommandError>$/,
-      "\\1outcome: null | Outcome<Result, CommandError>\n" \
-      "\n\\1// Added after generation — see script/generate_ts.rb. The generated\n" \
-      "\\1// class calls this on success but only defines it when the app\n" \
-      "\\1// declares queries.\n" \
-      "\\1dirtyQueries (): void {}\n"
-    )
-    File.write(remote_path, remote)
-    puts "patched RemoteCommand#dirtyQueries (no-op)"
-  end
+# --- patch 2 -----------------------------------------------------------------
+# RemoteCommand#_handleResponse calls this.dirtyQueries() on every success, but
+# the generator only emits that method for apps that declare queries. With none
+# declared, EVERY successful command raises "TypeError: this.dirtyQueries is not
+# a function".
+#
+# The one that most needs the assertion above: it is not a type error, so tsc is
+# clean and it only surfaces in a browser.
+remote_path = File.join(GENERATED, "base/RemoteCommand.ts")
 
-  # Third patch. The generated SDK has no hook for an Authorization header —
-  # the upstream assumption is that Foobara::Auth's RequiresAuthCommand supplies
-  # one, which is the same assumption that broke the first patch above.
-  #
-  # It goes on the BASE class, not on RequiresAuthCommand: the commands that are
-  # public but viewer-aware (ListPosts marking your own posts editable,
-  # MyReactions) extend RemoteCommand directly, and they need the token too or a
-  # signed-in caller looks anonymous to them.
-  #
-  # _issueRequest rather than _buildRequestParams because the provider is async:
-  # it may have to refresh an expired token before the request goes out.
-  unless remote.include?("authTokenProvider")
-    remote = remote.sub(
-      "  async _issueRequest (): Promise<Response> {\n" \
-      "    return await fetch(this._buildUrl(), this._buildRequestParams())\n" \
-      "  }",
-      "  // Added after generation — see script/generate_ts.rb.\n" \
-      "  static authTokenProvider: (() => Promise<string | null>) | null = null\n" \
-      "\n" \
-      "  async _issueRequest (): Promise<Response> {\n" \
-      "    const params = this._buildRequestParams()\n" \
-      "    const token = await RemoteCommand.authTokenProvider?.()\n" \
-      "    if (token != null) {\n" \
-      "      (params.headers as Record<string, string>).Authorization = `Bearer ${token}`\n" \
-      "    }\n" \
-      "    return await fetch(this._buildUrl(), params)\n" \
-      "  }"
-    )
-    File.write(remote_path, remote)
-    puts "patched RemoteCommand._issueRequest (bearer token hook)"
-  end
+patch!(remote_path, "RemoteCommand#dirtyQueries (no-op)", skip_if: "dirtyQueries (") do |source|
+  source.sub(
+    /^(\s*)outcome: null \| Outcome<Result, CommandError>$/,
+    "\\1outcome: null | Outcome<Result, CommandError>\n" \
+    "\n\\1// Added after generation — see script/generate_ts.rb. The generated\n" \
+    "\\1// class calls this on success but only defines it when the app\n" \
+    "\\1// declares queries.\n" \
+    "\\1dirtyQueries (): void {}\n"
+  )
+end
 
-  puts "generated #{outcome.result.inspect}"
-else
-  puts "FAILED: #{outcome.errors_hash}"
+# --- patch 3 -----------------------------------------------------------------
+# The SDK has no hook for an Authorization header, because upstream assumes
+# Foobara::Auth's RequiresAuthCommand supplies one — the same assumption behind
+# patch 1.
+#
+# It goes on the BASE class, not on RequiresAuthCommand: the commands that are
+# public but viewer-aware (ListPosts marking your own posts editable,
+# MyReactions) extend RemoteCommand directly and need the token too, or a
+# signed-in caller looks anonymous to them.
+#
+# _issueRequest rather than _buildRequestParams because the provider is async: it
+# may have to refresh an expired token before the request goes out.
+patch!(remote_path, "RemoteCommand._issueRequest (bearer token hook)", skip_if: "authTokenProvider") do |source|
+  source.sub(
+    "  async _issueRequest (): Promise<Response> {\n" \
+    "    return await fetch(this._buildUrl(), this._buildRequestParams())\n" \
+    "  }",
+    "  // Added after generation — see script/generate_ts.rb.\n" \
+    "  static authTokenProvider: (() => Promise<string | null>) | null = null\n" \
+    "\n" \
+    "  async _issueRequest (): Promise<Response> {\n" \
+    "    const params = this._buildRequestParams()\n" \
+    "    const token = await RemoteCommand.authTokenProvider?.()\n" \
+    "    if (token != null) {\n" \
+    "      (params.headers as Record<string, string>).Authorization = `Bearer ${token}`\n" \
+    "    }\n" \
+    "    return await fetch(this._buildUrl(), params)\n" \
+    "  }"
+  )
 end

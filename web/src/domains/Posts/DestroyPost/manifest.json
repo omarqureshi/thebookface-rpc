@@ -115,6 +115,10 @@
   },
   "description": "Cascading delete across posts, comments and reactions, then images.",
   "result_type": "boolean",
+  "aws_lambda": {
+    "memory_size": 1769,
+    "timeout_seconds": 60
+  },
   "errors_transformers": [
     "Foobara::CommandConnectors::Transformers::AuthErrorsTransformer"
   ],

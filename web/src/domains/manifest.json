@@ -953,6 +953,10 @@
       },
       "description": "Cascading delete across posts, comments and reactions, then images.",
       "result_type": "boolean",
+      "aws_lambda": {
+        "memory_size": 1769,
+        "timeout_seconds": 60
+      },
       "errors_transformers": [
         "Foobara::CommandConnectors::Transformers::AuthErrorsTransformer"
       ],
@@ -2991,6 +2995,7 @@
         "Posts",
         "Profiles",
         "Reactions",
+        "Shared",
         "Uploads",
         "global_organization::global_domain"
       ]
@@ -6308,7 +6313,7 @@
     }
   },
   "metadata": {
-    "when": "2026-08-04 00:36:00 +0100",
+    "when": "2026-08-05 22:18:46 +0100",
     "foobara_version": "0.5.10",
     "url": "http://localhost:9292/manifest"
   }

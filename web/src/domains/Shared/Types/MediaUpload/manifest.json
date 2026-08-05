@@ -1,0 +1,148 @@
+{
+  "scoped_path": [
+    "MediaUpload"
+  ],
+  "scoped_name": "MediaUpload",
+  "scoped_short_name": "MediaUpload",
+  "scoped_prefix": null,
+  "scoped_full_path": [
+    "Shared",
+    "MediaUpload"
+  ],
+  "scoped_full_name": "Shared::MediaUpload",
+  "scoped_category": "type",
+  "reference": "Shared::MediaUpload",
+  "domain": "Shared",
+  "organization": "global_organization",
+  "parent": [
+    "domain",
+    "Shared"
+  ],
+  "declaration_data": {
+    "type": "model",
+    "name": "MediaUpload",
+    "model_module": "Shared",
+    "model_class": "Shared::MediaUpload",
+    "model_base_class": "Foobara::Model",
+    "attributes_declaration": {
+      "type": "attributes",
+      "element_type_declarations": {
+        "key": "string",
+        "content_type": "string",
+        "width": "integer",
+        "height": "integer"
+      },
+      "required": [
+        "content_type",
+        "key"
+      ]
+    }
+  },
+  "possible_errors": {
+    "data.cannot_cast": {
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.content_type.cannot_cast": {
+      "path": [
+        "content_type"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.content_type.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.content_type.missing_required_attribute": {
+      "path": [
+        "content_type"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.content_type.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.height.cannot_cast": {
+      "path": [
+        "height"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.height.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.key.cannot_cast": {
+      "path": [
+        "key"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.key.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    },
+    "data.key.missing_required_attribute": {
+      "path": [
+        "key"
+      ],
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.key.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.missing_required_attribute": {
+      "category": "data",
+      "symbol": "missing_required_attribute",
+      "key": "data.missing_required_attribute",
+      "error": "attributes::SupportedValidators::Required::MissingRequiredAttributeError"
+    },
+    "data.unexpected_attributes": {
+      "category": "data",
+      "symbol": "unexpected_attributes",
+      "key": "data.unexpected_attributes",
+      "error": "attributes::SupportedProcessors::ElementTypeDeclarations::UnexpectedAttributesError"
+    },
+    "data.width.cannot_cast": {
+      "path": [
+        "width"
+      ],
+      "category": "data",
+      "symbol": "cannot_cast",
+      "key": "data.width.cannot_cast",
+      "error": "Foobara::Value::Processor::Casting::CannotCastError"
+    }
+  },
+  "name": "MediaUpload",
+  "target_classes": [
+    "Shared::MediaUpload"
+  ],
+  "types_depended_on": [
+    "array",
+    "attributes",
+    "duck",
+    "integer",
+    "model",
+    "string",
+    "symbol"
+  ],
+  "description": null,
+  "base_type": "model",
+  "attributes_type": {
+    "type": "attributes",
+    "element_type_declarations": {
+      "key": "string",
+      "content_type": "string",
+      "width": "integer",
+      "height": "integer"
+    },
+    "required": [
+      "content_type",
+      "key"
+    ]
+  },
+  "organization_name": "global_organization",
+  "domain_name": "Shared",
+  "model_name": "MediaUpload",
+  "model_base_class": "Foobara::Model",
+  "model_class": "Shared::MediaUpload"
+}
