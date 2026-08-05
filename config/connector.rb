@@ -13,23 +13,10 @@
 
 require_relative "boot"
 require "foobara/rack_connector"
-require "foobara/aws/sqs_connector"
 
 # Commands that read public data are connected open; everything that writes, or
 # that acts on the viewer's own records, requires authentication. This list is
 # the only declaration of it anywhere.
-# The queue half. Commands here are not routed: they are consumed from SQS by
-# their own Lambda, and enqueued by the <Command>Async that connect generates.
-#
-# No queue URL locally, so enqueuing runs the command inline — which is what the
-# cucumber suite exercises, and what keeps a profile rename visibly complete the
-# moment it is saved.
-BOOKFACE_QUEUE = Foobara::AWS::SQSConnector.new(queue_url: ENV.fetch("RECONCILE_QUEUE_URL", nil))
-BOOKFACE_QUEUE.connect(Profiles::ReconcileAuthorSnapshot)
-
-# The name foobara-aws's generated event handler looks for.
-FOOBARA_EVENT_CONNECTOR = BOOKFACE_QUEUE
-
 PUBLIC_COMMANDS = [
   Posts::ListPosts, Posts::GetPost,
   Comments::ListThread,

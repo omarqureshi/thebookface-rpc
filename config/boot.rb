@@ -10,6 +10,7 @@ require "cancancan"
 require "foobara/all"
 require "foobara/aws/handler"
 require "foobara/aws/lambda"
+require "foobara/aws/sqs_connector"
 
 TABLE_DEFAULTS = {
   "POSTS_TABLE"     => "bookface_posts",
@@ -53,3 +54,20 @@ require_relative "../app/domains/comments"
 require_relative "../app/domains/reactions"
 require_relative "../app/domains/profiles"
 require_relative "../app/domains/uploads"
+
+# The queue connector lives HERE, not in config/connector.rb, because connecting
+# a command generates the <Command>Async that other commands call — so it has to
+# exist wherever the domain is loaded, not only where HTTP is served.
+#
+# It did not, and a packaged unit found out at runtime: the generated handler
+# requires this file but not config/connector.rb, so UpdateProfile referenced a
+# constant that had never been defined. Locally config.ru loaded both, which is
+# exactly the kind of divergence that only shows up deployed.
+#
+# No queue URL means enqueuing runs the command inline, which is what local work
+# and the cucumber suite exercise.
+BOOKFACE_QUEUE = Foobara::AWS::SQSConnector.new(queue_url: ENV.fetch("RECONCILE_QUEUE_URL", nil))
+BOOKFACE_QUEUE.connect(Profiles::ReconcileAuthorSnapshot)
+
+# The name foobara-aws's generated event handler looks for.
+FOOBARA_EVENT_CONNECTOR = BOOKFACE_QUEUE
