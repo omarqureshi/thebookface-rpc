@@ -195,6 +195,10 @@ Neither is documented anywhere I found, and both cost real time:
 
 ## TypeScript generator bugs
 
+Written up for upstream, with file and line references and suggested fixes, in
+[docs/upstream-typescript-generator.md](docs/upstream-typescript-generator.md).
+Summarised here.
+
 The whole React UI runs on the generated SDK — 175 files from
 `script/generate_ts.rb` — and 27 cucumber scenarios pass against it. Three
 defects had to be worked around first; two are patched after generation, in that
