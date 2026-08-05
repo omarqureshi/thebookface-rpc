@@ -2,7 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     base64 (0.3.0)
-    foobara-aws (0.3.0)
+    foobara-aws (0.4.0)
     jwt (3.2.0)
       base64
 
@@ -11,12 +11,12 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  foobara-aws (~> 0.3)
+  foobara-aws (~> 0.4)
   jwt (~> 3.1)
 
 CHECKSUMS
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
-  foobara-aws (0.3.0) sha256=3e232116c4cef44a445ee696cfc18db356977559f39690aed02ac60ddc7e9918
+  foobara-aws (0.4.0) sha256=1afdb274c5eea3ce1aeb213e70b7a3abefc10f43ff207a7f09d92882ea01840d
   jwt (3.2.0) sha256=5419b1fe37b1da0982bd07051f573a8b8789ab724c2aa7e785e4784a3ed217d7
 
 BUNDLED WITH
