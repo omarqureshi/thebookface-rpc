@@ -6,6 +6,6 @@ source "https://rubygems.org"
 
 # The authorizer itself. foobara-aws has no runtime dependencies, so this pulls
 # in nothing else.
-gem "foobara-aws", "~> 0.3"
+gem "foobara-aws", "~> 0.4"
 # Only the authorizer needs it, which is why foobara-aws does not depend on it.
 gem "jwt", "~> 3.1"

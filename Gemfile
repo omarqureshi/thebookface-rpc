@@ -8,7 +8,7 @@ gem "foobara-rack-connector"
 # Plans the deployment from the manifest, packages one artifact per domain, and
 # provides the Lambda handler and optional-auth authorizer. Its CDK half is a
 # separate require, used only by infra/ — nothing here loads it.
-gem "foobara-aws", "~> 0.3"
+gem "foobara-aws", "~> 0.4"
 # Foobara's own TypeScript SDK generator — the counterpart to Prospect's
 # emitter, and the honest comparison for the client half.
 gem "foobara-typescript-remote-command-generator", group: :development

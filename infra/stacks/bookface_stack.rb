@@ -72,7 +72,10 @@ class BookfaceStack < AWSCDK::Stack
     super(scope, id, props)
 
     @domain = ENV["BOOKFACE_DOMAIN"] || DOMAINS[stage]
-    @plan = Foobara::AWS.plan_from_connector(BOOKFACE_CONNECTOR, mount: "/run")
+    @plan = Foobara::AWS.plan_from_connectors(
+      { http: BOOKFACE_CONNECTOR, sqs: BOOKFACE_QUEUE }, mount: "/run"
+    )
+    provenance = read_provenance
     @tables_plan = JSON.parse(File.read(File.join(BUILD, "tables.json")))
 
     # Tables come from build/tables.json, which script/dump_schema.rb reads off
@@ -161,6 +164,10 @@ class BookfaceStack < AWSCDK::Stack
       # X-Ray, for cold starts: a cold invocation gets an Initialization
       # subsegment, so boot cost is visible rather than inferred.
       tracing: :active,
+      # Stamps FOOBARA_REVISION per function: the commit that function's code
+      # last changed at, which is the honest answer to "what is running here?"
+      # — the deploying commit would claim credit for code it did not touch.
+      provenance: provenance,
       authorizer: {
         id: "Authorizer",
         code: File.join(BUILD, "authorizer"),
@@ -192,6 +199,11 @@ class BookfaceStack < AWSCDK::Stack
     profiles.grant_read_write_data(function("profiles"))
     profiles.grant_read_data(function("posts"))          # author snapshot
     profiles.grant_read_data(function("comments"))
+    # The reconciler rewrites the author snapshot everywhere the user has
+    # written, so it reads its own profile and writes posts and comments.
+    profiles.grant_read_data(function("profiles-sqs"))
+    posts.grant_read_write_data(function("profiles-sqs"))
+    comments.grant_read_write_data(function("profiles-sqs"))
     media.grant_put(function("uploads"))
     media.grant_delete(function("posts"))                # reap on delete
 
@@ -206,6 +218,12 @@ class BookfaceStack < AWSCDK::Stack
         AWSCDK::IAM::PolicyStatement.new({ actions: ["dynamodb:ListTables"], resources: ["*"] })
       )
     end
+
+    # The reconciliation queue exists because the plan has an sqs unit; the
+    # units that ENQUEUE onto it need its URL and permission to send.
+    reconcile = api.queue("profiles-sqs")
+    reconcile.grant_send_messages(api.function("profiles"))
+    api.function("profiles").add_environment("RECONCILE_QUEUE_URL", reconcile.queue_url)
 
     site = deploy_site(client, media)
 
@@ -224,6 +242,16 @@ class BookfaceStack < AWSCDK::Stack
   end
 
   def function(name) = @functions.fetch(name)
+
+  # Written by the packager, committed, and read here rather than recomputed:
+  # which revision a unit last changed at is a fact about a BUILD, and synthesis
+  # has no way to know it otherwise.
+  def read_provenance
+    path = File.expand_path("../../provenance.json", __dir__)
+    return {} unless File.exist?(path)
+
+    JSON.parse(File.read(path)).transform_values { |entry| entry.fetch("revision") }
+  end
 
   private
 

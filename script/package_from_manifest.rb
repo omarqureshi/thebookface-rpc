@@ -28,7 +28,11 @@ ROOT = File.expand_path("..", __dir__)
 # serving cannot disagree about which commands are public.
 require_relative "../config/connector"
 
-plan = Foobara::AWS.plan_from_connector(BOOKFACE_CONNECTOR, mount: "/run")
+# Both connectors: the HTTP one becomes routed units, the SQS one a unit with an
+# event source and no route.
+plan = Foobara::AWS.plan_from_connectors(
+  { http: BOOKFACE_CONNECTOR, sqs: BOOKFACE_QUEUE }, mount: "/run"
+)
 
 built = Foobara::AWS::Packager.new(
   plan: plan,
@@ -36,7 +40,12 @@ built = Foobara::AWS::Packager.new(
   # The authorizer gets none of these — it verifies a token and answers yes or
   # no, so the domain model would be dead weight on every authenticated request.
   sources: %w[app config],
-  authorizer: {}
+  authorizer: {},
+  # Records which revision each unit last CHANGED at — not the revision being
+  # built. An untouched unit keeps its old value, so its Lambda's configuration
+  # does not churn on every commit and `cdk diff` still means something.
+  # Committed, because it is only useful as a history.
+  provenance: File.join(ROOT, "provenance.json")
 ).build
 
 built.each { |unit| puts "built #{unit[:name]}: #{unit[:commands]} commands" }

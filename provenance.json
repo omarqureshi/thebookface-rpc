@@ -1,0 +1,30 @@
+{
+  "authorizer": {
+    "revision": "e5e129c-dirty",
+    "content": "89089fc9655cd818"
+  },
+  "comments": {
+    "revision": "e5e129c-dirty",
+    "content": "951e484a21264a5e"
+  },
+  "posts": {
+    "revision": "e5e129c-dirty",
+    "content": "a8954781e8848a71"
+  },
+  "profiles": {
+    "revision": "e5e129c-dirty",
+    "content": "1d9a151d60f3f7d1"
+  },
+  "profiles-sqs": {
+    "revision": "e5e129c-dirty",
+    "content": "960c18d4ff5da2b8"
+  },
+  "reactions": {
+    "revision": "e5e129c-dirty",
+    "content": "a5eb4fd810fc4050"
+  },
+  "uploads": {
+    "revision": "e5e129c-dirty",
+    "content": "c6c68b9fd81d3336"
+  }
+}

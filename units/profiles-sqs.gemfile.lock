@@ -1,0 +1,141 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activemodel (8.1.3.1)
+      activesupport (= 8.1.3.1)
+    activesupport (8.1.3.1)
+      base64
+      bigdecimal
+      concurrent-ruby (~> 1.0, >= 1.3.1)
+      connection_pool (>= 2.2.5)
+      drb
+      i18n (>= 1.6, < 2)
+      json
+      logger (>= 1.4.2)
+      minitest (>= 5.1)
+      securerandom (>= 0.3)
+      tzinfo (~> 2.0, >= 2.0.5)
+      uri (>= 0.13.1)
+    aws-eventstream (1.4.0)
+    aws-partitions (1.1277.0)
+    aws-sdk-core (3.254.0)
+      aws-eventstream (~> 1, >= 1.3.0)
+      aws-partitions (~> 1, >= 1.992.0)
+      aws-sigv4 (~> 1.9)
+      base64
+      bigdecimal
+      jmespath (~> 1, >= 1.6.1)
+      logger
+    aws-sdk-dynamodb (1.172.0)
+      aws-sdk-core (~> 3, >= 3.254.0)
+      aws-sigv4 (~> 1.5)
+    aws-sdk-kms (1.130.0)
+      aws-sdk-core (~> 3, >= 3.254.0)
+      aws-sigv4 (~> 1.5)
+    aws-sdk-s3 (1.228.2)
+      aws-sdk-core (~> 3, >= 3.254.0)
+      aws-sdk-kms (~> 1)
+      aws-sigv4 (~> 1.5)
+    aws-sdk-sqs (1.117.0)
+      aws-sdk-core (~> 3, >= 3.254.0)
+      aws-sigv4 (~> 1.5)
+    aws-sigv4 (1.12.1)
+      aws-eventstream (~> 1, >= 1.0.2)
+    base64 (0.3.0)
+    bigdecimal (4.1.2)
+    cancancan (3.6.1)
+    cgi (0.5.2)
+    concurrent-ruby (1.3.8)
+    connection_pool (3.0.2)
+    drb (2.2.3)
+    dynamoid (3.14.0)
+      activemodel (>= 4)
+      aws-sdk-dynamodb (~> 1.0)
+      concurrent-ruby (>= 1.0)
+    foobara (0.5.10)
+      bigdecimal
+      foobara-lru-cache (< 2.0.0)
+      foobara-util (< 2.0.0)
+      inheritable-thread-vars (< 2.0.0)
+    foobara-aws (0.3.0)
+    foobara-http-command-connector (1.1.5)
+      foobara (>= 0.1.1, < 2.0.0)
+    foobara-lru-cache (1.0.0)
+    foobara-rack-connector (0.1.3)
+      cgi
+      foobara (>= 0.1.1, < 2.0.0)
+      foobara-http-command-connector (>= 0.1.0, < 2.0.0)
+      rack
+    foobara-util (1.0.8)
+    i18n (1.15.2)
+      concurrent-ruby (~> 1.0)
+    inheritable-thread-vars (0.0.3)
+    jmespath (1.6.2)
+    json (2.21.2)
+    logger (1.7.0)
+    minitest (6.0.6)
+      drb (~> 2.0)
+      prism (~> 1.5)
+    prism (1.9.0)
+    rack (3.2.6)
+    rexml (3.4.4)
+    securerandom (0.4.1)
+    tzinfo (2.0.6)
+      concurrent-ruby (~> 1.0)
+    uri (1.1.1)
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  aws-sdk-dynamodb (~> 1)
+  aws-sdk-s3 (~> 1)
+  aws-sdk-sqs (~> 1)
+  cancancan (~> 3.6)
+  dynamoid (~> 3.10)
+  foobara
+  foobara-aws (~> 0.3)
+  foobara-rack-connector
+  rexml
+
+CHECKSUMS
+  activemodel (8.1.3.1) sha256=99cc02ce2faec371d14440949d85787ebd23a907c9baef0a9d4bcd4d21888f88
+  activesupport (8.1.3.1) sha256=85458765f25ea48b9019c46b6bb3fa5683197bf4280d9f06710a6e8d7a831376
+  aws-eventstream (1.4.0) sha256=116bf85c436200d1060811e6f5d2d40c88f65448f2125bc77ffce5121e6e183b
+  aws-partitions (1.1277.0) sha256=40bda996876a45a60c43fbf489b04b46216e98c1814c1ac6453b942e0df6501e
+  aws-sdk-core (3.254.0) sha256=ee3e3220b8468a3c9e59daba18e6ec897bf5c7ce8adcc0670cfa2f1f092112fe
+  aws-sdk-dynamodb (1.172.0) sha256=a9fb3e2b2f53289d51fc4e26274cb3f675b91dcccfcbf7c3541558003d737610
+  aws-sdk-kms (1.130.0) sha256=a2e83662ca31b77a2a19c9aa2f40a98165a67270c18c718fe1c70d0cbd7cd749
+  aws-sdk-s3 (1.228.2) sha256=1217b878b554b45f2152115c5d2623e3497222f46a738e5a96e9767cbf41468b
+  aws-sdk-sqs (1.117.0) sha256=cdfebf190a26f1ccb7396ad3edfa23253909d1b8961676b4b58a953d78424472
+  aws-sigv4 (1.12.1) sha256=6973ff95cb0fd0dc58ba26e90e9510a2219525d07620c8babeb70ef831826c00
+  base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
+  bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
+  cancancan (3.6.1) sha256=975c1d5cbf58d5df48a9452a7f61ae3d254608cd87570402f5925a8864c56b62
+  cgi (0.5.2) sha256=61ca30298171190fd4fa0d8018e57ada456eae9b7a2b78526debf7f0a0e6f8bb
+  concurrent-ruby (1.3.8) sha256=b2f1be836e968ccc78ccfce277ea79c72a88633f22306782c16ff23fb415d1e1
+  connection_pool (3.0.2) sha256=33fff5ba71a12d2aa26cb72b1db8bba2a1a01823559fb01d29eb74c286e62e0a
+  drb (2.2.3) sha256=0b00d6fdb50995fe4a45dea13663493c841112e4068656854646f418fda13373
+  dynamoid (3.14.0) sha256=e453b9227f455bc779e50689b2a6a8033b8486203b261114e02225ed40a0c40d
+  foobara (0.5.10) sha256=f40391dd1e30141916191f423f9993c3f231da4090e6aa767eb87e63251cd959
+  foobara-aws (0.3.0) sha256=3e232116c4cef44a445ee696cfc18db356977559f39690aed02ac60ddc7e9918
+  foobara-http-command-connector (1.1.5) sha256=d8bcb4fb861741f86e7cea1f6deaa23c0e8885e476d4aa01b81f13bdba00aa32
+  foobara-lru-cache (1.0.0) sha256=ff9716e011a4642382dc0e1fd7a80751134b1fbf97d180fd333472a5d20f2029
+  foobara-rack-connector (0.1.3) sha256=8278d535c0bbc03b8f7d4cff65e7314e8890777291c93d22283c339172678089
+  foobara-util (1.0.8) sha256=8f91f08619a516170f6b1070ed089c210be9906cf33dd1b5640bfd4618ae7fa8
+  i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
+  inheritable-thread-vars (0.0.3) sha256=2fe4296a625a0abd8174e39003a0a5a6635def31ddfe2c229921a219ba9e0724
+  jmespath (1.6.2) sha256=238d774a58723d6c090494c8879b5e9918c19485f7e840f2c1c7532cf84ebcb1
+  json (2.21.2) sha256=1f1d3b7cf2b3ba1a69beca0bb6db13d5438b80bff3cd54cdaaa620b9b07c1c6a
+  logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
+  minitest (6.0.6) sha256=153ea36d1d987a62942382b61075745042a2b3123b1cd48f4c3675af9cc7d6f1
+  prism (1.9.0) sha256=7b530c6a9f92c24300014919c9dcbc055bf4cdf51ec30aed099b06cd6674ef85
+  rack (3.2.6) sha256=5ed78e1f73b2e25679bec7d45ee2d4483cc4146eb1be0264fc4d94cb5ef212c2
+  rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
+  securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1
+  tzinfo (2.0.6) sha256=8daf828cc77bcf7d63b0e3bdb6caa47e2272dcfaf4fbfe46f8c3a9df087a829b
+  uri (1.1.1) sha256=379fa58d27ffb1387eaada68c749d1426738bd0f654d812fcc07e7568f5c57c6
+
+BUNDLED WITH
+  4.0.16
