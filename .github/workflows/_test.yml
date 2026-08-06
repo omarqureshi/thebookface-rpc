@@ -1,0 +1,59 @@
+name: Test (reusable)
+
+# Everything provable without AWS, in one place so the deploy runs exactly what
+# a pull request ran rather than a second copy that can drift from it.
+#
+# Cheapest first, so a typo in the client fails in seconds rather than after a
+# browser has booted:
+#
+#   tsc --noEmit   the generated SDK and the app agree
+#   vitest         pure client logic (web/src/components/Avatar.test.ts)
+#   cucumber       the app itself, including one real-browser upload scenario
+#
+# There is no rspec suite here: rspec-expectations is a dependency because the
+# cucumber steps use `expect`, but the Ruby side is covered through cucumber.
+on:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          # Pinned here rather than by .ruby-version, which this repo does not
+          # carry. Keep in step with the version the Lambdas are built for.
+          ruby-version: '4.0.5'
+          bundler-cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install the client's dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: web
+        run: npm run typecheck
+
+      - name: Unit tests
+        working-directory: web
+        run: npm test
+
+      - name: Install Chrome
+        # features/support/env.rb looks for it under web/chrome, the same place
+        # the local setup puts it, so the driver config needs no CI special case.
+        run: npx @puppeteer/browsers install chrome@stable --path "$PWD/web/chrome"
+
+      - name: Cucumber
+        # Brings up DynamoDB Local, creates the tables, starts the Rack API and
+        # the Vite dev server, waits for both, then runs the suite.
+        run: script/cucumber.sh

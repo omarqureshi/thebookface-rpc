@@ -22,7 +22,14 @@ permissions:
   contents: read
 
 jobs:
+  # The same suite a pull request runs, and a prerequisite: nothing reaches AWS
+  # that has not been proven locally first. Deploying used to start the moment a
+  # commit landed on staging, in parallel with a CI run it never waited for.
+  test:
+    uses: ./.github/workflows/_test.yml
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     environment: staging
     steps:
