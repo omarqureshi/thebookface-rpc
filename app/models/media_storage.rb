@@ -68,6 +68,47 @@ module MediaStorage
     end
   end
 
+  # What the bytes actually are, regardless of what the uploader claimed.
+  #
+  # The presigned POST signs the DECLARED Content-Type and a size range, so S3
+  # enforces those — but nothing checks the bytes. A caller can therefore store
+  # anything it likes as image/png, and CloudFront will serve it from our own
+  # domain. Sniffing is how that gets caught.
+  MAGIC = {
+    "image/jpeg" => ->(b) { b.start_with?("\xFF\xD8\xFF".b) },
+    "image/png" => ->(b) { b.start_with?("\x89PNG\r\n\x1A\n".b) },
+    "image/gif" => ->(b) { b.start_with?("GIF87a".b) || b.start_with?("GIF89a".b) },
+    # RIFF....WEBP — the four bytes between are the file size.
+    "image/webp" => ->(b) { b.start_with?("RIFF".b) && b[8, 4] == "WEBP".b }
+  }.freeze
+
+  # Enough for the longest signature above (RIFF + size + WEBP).
+  SNIFF_BYTES = 12
+
+  def sniff(bytes)
+    return nil if bytes.nil? || bytes.empty?
+
+    MAGIC.find { |_type, matches| matches.call(bytes.b) }&.first
+  end
+
+  # Nil when the object is not there. That is not an error: an upload can be
+  # reaped between being stored and being checked.
+  def first_bytes(key, count = SNIFF_BYTES)
+    if local?
+      File.binread(path_for(key), count)
+    else
+      s3_client.get_object(bucket: bucket, key: key.to_s, range: "bytes=0-#{count - 1}").body.read
+    end
+  rescue Errno::ENOENT
+    nil
+  rescue StandardError => e
+    # aws-sdk raises NoSuchKey, but only once aws-sdk-s3 is loaded, so this
+    # cannot name the class without forcing the require on every unit.
+    raise unless e.class.name.to_s.end_with?("NoSuchKey", "NotFound")
+
+    nil
+  end
+
   # Locally this really deletes, so "deleting a post reaps its images" is a
   # behaviour the suite can assert rather than a claim in a comment.
   def delete_objects(keys)

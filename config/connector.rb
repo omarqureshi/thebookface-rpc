@@ -36,7 +36,7 @@ BOOKFACE_CONNECTOR = Foobara::CommandConnectors::Http::Rack.new(
 # Everything except the queue's own command, which is not reachable over HTTP:
 # it is triggered by a message, and exposing it would let anyone run another
 # user's reconciliation.
-QUEUE_ONLY = [Profiles::ReconcileAuthorSnapshot].freeze
+QUEUE_ONLY = [Profiles::ReconcileAuthorSnapshot, Uploads::VerifyUpload].freeze
 
 [Posts, Comments, Reactions, Profiles, Uploads].each do |domain|
   domain.foobara_all_command.each do |command|

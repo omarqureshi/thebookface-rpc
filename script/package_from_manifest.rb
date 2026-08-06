@@ -49,7 +49,11 @@ built = Foobara::AWS::Packager.new(
 ).build
 
 built.each { |unit| puts "built #{unit[:name]}: #{unit[:commands]} commands" }
-plan.units.each { |u| puts "  #{u.name.ljust(10)} #{u.route.ljust(26)} public #{u.public_commands.length}" }
+plan.units.each do |u|
+  # An sqs unit has no route: it is reached by an event source mapping, so the
+  # column is a dash rather than a URL.
+  puts "  #{u.name.ljust(12)} #{(u.route || "-- #{u.trigger} --").ljust(26)} public #{u.public_commands.length}"
+end
 puts "wrote #{File.join(ROOT, "build", "plan.json")}"
 
 # The other half the stack reads: the DynamoDB schema, from the Dynamoid models.

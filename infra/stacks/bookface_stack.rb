@@ -95,6 +95,9 @@ class BookfaceStack < AWSCDK::Stack
 
     media = AWSCDK::S3::Bucket.new(self, "Media", {
       removal_policy: AWSCDK::RemovalPolicy::DESTROY,
+      # So Object Created reaches EventBridge and, through it, the uploads
+      # queue. See verify_uploads below for why it goes the long way round.
+      event_bridge_enabled: true,
       # Both, or neither. DESTROY alone is a trap: the bucket is empty today so
       # a teardown works, but the first uploaded image would make `cdk destroy`
       # fail on a non-empty bucket — discovered at exactly the wrong moment.
@@ -225,6 +228,12 @@ class BookfaceStack < AWSCDK::Stack
     reconcile.grant_send_messages(api.function("profiles"))
     api.function("profiles").add_environment("RECONCILE_QUEUE_URL", reconcile.queue_url)
 
+    # Reads the first bytes of the object and deletes it if they are not an
+    # image, so it needs both.
+    media.grant_read(function("uploads-sqs"))
+    media.grant_delete(function("uploads-sqs"))
+    verify_uploads(media, api.queue("uploads-sqs"))
+
     site = deploy_site(client, media)
 
     # Set after the fact rather than in `environment`: the value depends on the
@@ -294,6 +303,47 @@ class BookfaceStack < AWSCDK::Stack
   # Assets must be built first, the same way Lambda artifacts must be:
   #
   #   cd web && npm run build
+  # S3 -> EventBridge -> SQS, rather than S3 -> SQS directly.
+  #
+  # The queue's contract is that a message names a command and its inputs, and
+  # the generated handler has no hook for anything else. An S3 notification is
+  # not that shape, so something has to translate. EventBridge does it here with
+  # an input transformer, which means the envelope is built by infrastructure
+  # and the handler stays the one every other queue message goes through.
+  #
+  # The alternative is a decoder in the Lambda, which foobara-aws supports
+  # (EventHandler.new(connector, decode:)) but its generated handler cannot pass
+  # -- the handler template is per-packager, not per-unit, so overriding it for
+  # this unit would replace the HTTP handler too.
+  def verify_uploads(media, queue)
+    rule = AWSCDK::Events::Rule.new(self, "MediaObjectCreated", {
+      event_pattern: {
+        source: ["aws.s3"],
+        detail_type: ["Object Created"],
+        detail: {
+          bucket: { name: [media.bucket_name] },
+          # Only what a user uploaded. Nothing else is written under this
+          # prefix, and matching here keeps the queue quiet rather than
+          # invoking a Lambda to decide it had nothing to do.
+          object: { key: [{ "prefix" => "u/" }] }
+        }
+      }
+    })
+
+    rule.add_target(
+      AWSCDK::EventsTargets::SQSQueue.new(queue, {
+        # Produces exactly the envelope EventHandler expects. The key is the
+        # only input VerifyUpload takes; everything else about the object it
+        # reads from S3, because the event is a claim and the bucket is the
+        # fact.
+        message: AWSCDK::Events::RuleTargetInput.from_object({
+          "command_name" => "Uploads::VerifyUpload",
+          "inputs" => { "key" => AWSCDK::Events::EventField.from_path("$.detail.object.key") }
+        })
+      })
+    )
+  end
+
   def deploy_site(client, media)
     bucket = AWSCDK::S3::Bucket.new(self, "Site", {
       removal_policy: AWSCDK::RemovalPolicy::DESTROY,

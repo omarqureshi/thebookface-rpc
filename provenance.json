@@ -1,30 +1,34 @@
 {
   "authorizer": {
-    "revision": "365796b-dirty",
+    "revision": "1f51a50-dirty",
     "content": "e3753df7db887f24"
   },
   "comments": {
-    "revision": "365796b-dirty",
-    "content": "ff323a288607d519"
+    "revision": "1f51a50-dirty",
+    "content": "a7a8147aa9a65a0a"
   },
   "posts": {
-    "revision": "365796b-dirty",
-    "content": "860950c0311e476d"
+    "revision": "1f51a50-dirty",
+    "content": "57849eb9efa4c875"
   },
   "profiles": {
-    "revision": "365796b-dirty",
-    "content": "5852d1b2c3eb4437"
+    "revision": "1f51a50-dirty",
+    "content": "06c7cabd44b4d080"
   },
   "profiles-sqs": {
-    "revision": "365796b-dirty",
-    "content": "56ced51da892965f"
+    "revision": "1f51a50-dirty",
+    "content": "b4244270c17b65df"
   },
   "reactions": {
-    "revision": "365796b-dirty",
-    "content": "d4191984fed7c193"
+    "revision": "1f51a50-dirty",
+    "content": "b1c1d7d3f253af06"
   },
   "uploads": {
-    "revision": "365796b-dirty",
-    "content": "e7d45146a5153932"
+    "revision": "1f51a50-dirty",
+    "content": "5b9d865270ff1603"
+  },
+  "uploads-sqs": {
+    "revision": "1f51a50-dirty",
+    "content": "c83618f4298b710e"
   }
 }

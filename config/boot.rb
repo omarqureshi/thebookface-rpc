@@ -68,6 +68,10 @@ require_relative "../app/domains/uploads"
 # and the cucumber suite exercise.
 BOOKFACE_QUEUE = Foobara::AWS::SQSConnector.new(queue_url: ENV.fetch("RECONCILE_QUEUE_URL", nil))
 BOOKFACE_QUEUE.connect(Profiles::ReconcileAuthorSnapshot)
+# Nothing in this app enqueues it — S3 does, through EventBridge. Connecting it
+# is still what makes it reachable by name from a message, which is all the
+# event handler needs.
+BOOKFACE_QUEUE.connect(Uploads::VerifyUpload)
 
 # The name foobara-aws's generated event handler looks for.
 FOOBARA_EVENT_CONNECTOR = BOOKFACE_QUEUE

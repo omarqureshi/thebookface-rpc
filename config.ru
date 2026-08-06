@@ -36,6 +36,13 @@ DEV_MEDIA = lambda do |env|
     file = req.params["file"]
     bytes = file.respond_to?(:[]) ? file[:tempfile].read : file.to_s
     File.binwrite(File.join(MEDIA_DIR, key.tr("/", "_")), bytes)
+
+    # Deployed, storing an object is what makes S3 emit Object Created, which
+    # EventBridge turns into this command. Doing it here keeps the local store a
+    # faithful stand-in: with no queue configured the enqueue runs inline, so a
+    # disguised upload is deleted here exactly as it would be there.
+    Uploads::VerifyUploadAsync.run!(key: key)
+
     [204, { "access-control-allow-origin" => "*" }, []]
   when "GET"
     path = File.join(MEDIA_DIR, key.tr("/", "_"))

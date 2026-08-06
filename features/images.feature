@@ -21,6 +21,22 @@ Feature: Attaching images to posts
     Then I should see "Look at this!"
     And I should see the attached image
 
+  # The bytes are not checked by the presigned policy — it signs the DECLARED
+  # content type and a size range, and nothing more. So an authenticated caller
+  # can store whatever it likes as image/png and have it served from our own
+  # domain. Deployed, S3 emits Object Created, EventBridge turns it into
+  # Uploads::VerifyUpload, and the queue runs it; locally the dev object store
+  # does the same on write.
+  Scenario: An upload that is not really an image is deleted
+    When I request an upload for "image/png"
+    And I upload bytes that are not an image
+    Then the uploaded object is gone
+
+  Scenario: A genuine image survives verification
+    When I request an upload for "image/png"
+    And I upload a real PNG
+    Then the uploaded object is still there
+
   # The real thing in headless Chrome: pick a file, the Stimulus controller
   # downscales it, uploads it straight to S3 (MinIO), and the post shows an image
   # the browser then loads back. Needs the test container (Dockerfile.test).
