@@ -37,3 +37,17 @@ Feature: Editing your profile
     # (run on the profile save) has rewritten it, so the old name is gone.
     Then I should see "Ada L."
     And I should not see "Ada Lovelace"
+
+  # The author snapshot on a post is rewritten to the profile's shown name
+  # whenever the profile is saved. So whatever a post stamps at creation has to
+  # be that same value, or the name on a post changes by itself later.
+  #
+  # The two only differ once the identity claim has moved on from what the last
+  # profile save stamped — a Google account whose name arrives differently than
+  # it did before.
+  Scenario: A post is attributed the same way the profile page shows me
+    Given I am signed in as "Ada Lovelace"
+    And I have saved my profile
+    When my identity claim starts saying "Ada"
+    And I post "Claim changed under me" through the API
+    Then the post "Claim changed under me" is attributed to "Ada Lovelace"

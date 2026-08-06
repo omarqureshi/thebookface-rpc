@@ -40,3 +40,23 @@ end
 Then("my profile has no photo") do
   expect(Profile.for(persona_sub(@me)).avatar_key).to be_nil
 end
+
+Given("I have saved my profile") do
+  # Stamps profile.name from the current claim, which is what a later post must
+  # agree with.
+  status, = run_command("Profiles/UpdateProfile", {})
+  expect(status).to eq(200)
+end
+
+When("my identity claim starts saying {string}") do |name|
+  @claim_name = name
+end
+
+When("I post {string} through the API") do |body|
+  status, = run_command("Posts/CreatePost", { "body" => body }, name: @claim_name)
+  expect(status).to eq(200)
+end
+
+Then("the post {string} is attributed to {string}") do |body, expected|
+  expect(find_post(body).author_name).to eq(expected)
+end

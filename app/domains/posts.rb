@@ -101,7 +101,12 @@ module Posts
         body:,
         media: media.map(&:to_h),
         author_sub: viewer.sub,
-        author_name: profile.display_name.presence || viewer.name,
+        # shown_name, not display_name: ProfileReconciliation rewrites this
+        # field to profile.shown_name on the next profile save, so stamping
+        # anything else here means the name silently changes later. They differ
+        # whenever the identity claim has moved on from what the last profile
+        # save stamped.
+        author_name: profile.shown_name.presence || viewer.name,
         author_avatar: profile.avatar_key
       )
       record.save

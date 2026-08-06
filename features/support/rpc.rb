@@ -15,7 +15,9 @@ require "json"
 # Returns [status, parsed_body]. Identity travels as X-Dev-* headers, the same
 # pair config.ru's authenticator reads (the browser uses a cookie instead, only
 # because the generated SDK offers no header hook).
-def run_command(path, input, as: nil)
+# +name+ overrides the claimed display name while keeping the same sub, which
+# is how a scenario can act as one user whose identity claim has changed.
+def run_command(path, input, as: nil, name: nil)
   who = as || @me
   uri = URI("#{API_HOST}/run/#{path}")
 
@@ -23,7 +25,7 @@ def run_command(path, input, as: nil)
   request["Content-Type"] = "application/json"
   if who
     request["X-Dev-Sub"] = persona_sub(who)
-    request["X-Dev-Name"] = who
+    request["X-Dev-Name"] = name || who
   end
   request.body = JSON.dump(input)
 
