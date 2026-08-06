@@ -18,7 +18,11 @@ app = AWSCDK::App.new({ outdir: ENV.fetch("CDK_OUTDIR", "cdk.out") })
 BookfaceStack.new(app, "BookfaceRpc-#{stage}", {
   env: AWSCDK::Environment.new(
     account: ENV["CDK_DEFAULT_ACCOUNT"] || "000000000000",
-    region: ENV.fetch("CDK_DEFAULT_REGION", "eu-west-2")
+    # us-east-1 because that is where the imported Cognito pool lives. The
+    # default matters: forgetting the variable used to mean synthesising for
+    # eu-west-2 and, on a deploy, standing up a second stack in the wrong
+    # region with an authorizer pointed at an issuer that does not exist.
+    region: ENV.fetch("CDK_DEFAULT_REGION", "us-east-1")
   )
 }, stage: stage)
 app.synth

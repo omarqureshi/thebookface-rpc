@@ -1,0 +1,100 @@
+name: Deploy Staging
+
+# Staging tracks the `staging` branch, the same convention as the Rails
+# Bookface: merge a feature there to prove it on real infra. Also runnable on
+# demand against any branch.
+#
+# What this deploys is NOT just infrastructure. The topology comes from the
+# manifest, so the build step boots the app, reads the connector, and packages
+# one Lambda artifact per domain; `cdk deploy` then synthesises from the same
+# plan. That is why Ruby, Node and Docker are all set up before AWS is touched.
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-bookface-rpc-staging
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # assume the AWS deploy role via OIDC
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0.5'
+          bundler-cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build the client
+        # The stack uploads web/dist to the site bucket, and skips the
+        # BucketDeployment entirely when the directory is absent — so a missing
+        # build here is a silent half-deploy rather than a failure.
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+          test -d dist || { echo "web/dist was not produced"; exit 1; }
+
+      - name: Install the CDK toolchain
+        run: |
+          npm i -g aws-cdk          # the CLI; cdk.json runs the Ruby app through it
+          cd infra && bundle install # aws-cdk-lib itself, from the preview feed
+
+      - name: Package the Lambdas
+        # Boots the app to read the connector, then bundles each unit in a
+        # container that matches the Lambda runtime. Docker is already available
+        # on the runner.
+        run: bundle exec ruby script/package_from_manifest.rb
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Hardcoded rather than built from a variable: an account id is not
+          # sensitive, and an unset variable would silently produce a malformed
+          # ARN. The role's trust policy lists this repository by its numeric
+          # id (see blog/infra/bootstrap/oidc_stack.rb).
+          role-to-assume: arn:aws:iam::339713138084:role/GitHubActionsCDKRole
+          # Must match where the imported Cognito pool lives: the stack builds
+          # the issuer URL from the region, so deploying elsewhere yields an
+          # authorizer that rejects every token.
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Deploy
+        working-directory: infra
+        env:
+          # BOOKFACE_DOMAIN is deliberately NOT set: the stack already defaults
+          # staging to staging.thebookface.net, and an unset repo variable would
+          # pass an empty string, which is truthy in Ruby and would win over
+          # that default.
+          #
+          # Set explicitly rather than left to the CLI to infer: the region
+          # decides the Cognito issuer, so it is not a detail to leave implicit.
+          CDK_DEFAULT_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+        run: cdk deploy BookfaceRpc-staging --require-approval never
+
+      - name: Check the deployment answers
+        # Asserts every connected command over the real edge, so a green deploy
+        # that serves 500s fails here rather than in a browser. The URL comes
+        # from the stack's own output rather than a variable, so the check can
+        # only ever pass by testing what was just deployed.
+        run: |
+          url=$(aws cloudformation describe-stacks --stack-name BookfaceRpc-staging \
+            --query "Stacks[0].Outputs[?OutputKey=='SiteUrl'].OutputValue" --output text)
+          test -n "$url" && test "$url" != "None" || { echo "no SiteUrl output"; exit 1; }
+          bundle exec ruby script/check_deploy.rb "$url"
