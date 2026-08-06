@@ -39,7 +39,9 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: |
+            web/package-lock.json
+            infra/package-lock.json
 
       - name: Build the client
         # The stack uploads web/dist to the site bucket, and skips the
@@ -52,9 +54,13 @@ jobs:
           test -d dist || { echo "web/dist was not produced"; exit 1; }
 
       - name: Install the CDK toolchain
+        working-directory: infra
         run: |
-          npm i -g aws-cdk          # the CLI; cdk.json runs the Ruby app through it
-          cd infra && bundle install # aws-cdk-lib itself, from the preview feed
+          # @jsii/runtime is the kernel the Ruby CDK actually talks to, and
+          # aws-cdk is the CLI. Both come from infra/package.json rather than a
+          # global install, so CI resolves the versions a local deploy does.
+          npm ci
+          bundle install  # aws-cdk-lib itself, from the preview feed
 
       - name: Package the Lambdas
         # Boots the app to read the connector, then bundles each unit in a
@@ -86,7 +92,8 @@ jobs:
           # Set explicitly rather than left to the CLI to infer: the region
           # decides the Cognito issuer, so it is not a detail to leave implicit.
           CDK_DEFAULT_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
-        run: cdk deploy BookfaceRpc-staging --require-approval never
+        # npx, so the CLI comes from infra/node_modules rather than the PATH.
+        run: npx cdk deploy BookfaceRpc-staging --require-approval never
 
       - name: Check the deployment answers
         # Asserts every connected command over the real edge, so a green deploy

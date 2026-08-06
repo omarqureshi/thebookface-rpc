@@ -1,0 +1,9 @@
+{
+  "name": "bookface-rpc-infra",
+  "private": true,
+  "description": "CDK toolchain. The Ruby CDK talks to the jsii kernel shipped by @jsii/runtime; aws-cdk is the deploy CLI. Both live here rather than being installed globally so CI resolves the same versions a local deploy does.",
+  "dependencies": {
+    "@jsii/runtime": "^1",
+    "aws-cdk": "^2"
+  }
+}
