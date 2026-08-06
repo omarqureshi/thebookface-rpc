@@ -1,6 +1,10 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import App from "./App"
+// Imported rather than linked from index.html: Vite then content-hashes it, so a
+// changed stylesheet arrives under a new URL instead of being served from a
+// browser cache that has no idea it is stale.
+import "./styles.css"
 import { loadAuthConfig, completeSignIn } from "./auth"
 
 // Both settled BEFORE the first render, deliberately.
