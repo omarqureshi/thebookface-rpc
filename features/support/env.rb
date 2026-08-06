@@ -30,7 +30,13 @@ API_HOST = ENV.fetch("BOOKFACE_API", "http://localhost:9292")
 def chrome_path
   return ENV["CHROME_PATH"] if ENV["CHROME_PATH"]
 
-  Dir[File.expand_path("../../web/chrome/**/chrome", __dir__)].find { |p| File.executable?(p) }
+  # File.file? as well as executable?: @puppeteer/browsers nests the download
+  # under <path>/chrome/<platform>-<build>/, so the glob also matches the
+  # DIRECTORY web/chrome/chrome -- and a directory is "executable", meaning
+  # searchable. Picking it gives Errno::EACCES at the first step of every
+  # scenario.
+  Dir[File.expand_path("../../web/chrome/**/chrome", __dir__)]
+    .find { |p| File.file?(p) && File.executable?(p) }
 end
 
 Capybara.register_driver(:cuprite) do |app|
