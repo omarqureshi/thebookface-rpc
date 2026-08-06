@@ -3,6 +3,7 @@ import { api, getUser, setUser, type DevUser } from "./api"
 import { Feed } from "./components/Feed"
 import { ProfilePage } from "./components/ProfilePage"
 import { Avatar } from "./components/Avatar"
+import { GoogleSignInButton } from "./components/GoogleSignInButton"
 import { useRoute } from "./router"
 import { authConfig, signIn as cognitoSignIn, signOut as cognitoSignOut } from "./auth"
 
@@ -79,9 +80,7 @@ export default function App() {
           ) : (
             <div className="signin">
               {cognito ? (
-                <button className="btn btn--primary btn--sm" onClick={() => void cognitoSignIn()}>
-                  Sign in with Google
-                </button>
+                <GoogleSignInButton onClick={() => void cognitoSignIn()} />
               ) : (
                 <>
                   <span className="signin__label">Sign in as</span>
